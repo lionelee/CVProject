@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/res">
+        <file>mipmap/lens_16.png</file>
+        <file>mipmap/lens_24.png</file>
+        <file>mipmap/lens_32.png</file>
+        <file>mipmap/lens_64.png</file>
+        <file>mipmap/lens_128.png</file>
+        <file>mipmap/lens_256.png</file>
+        <file>mipmap/lens_512.png</file>
+        <file>menu/redo.png</file>
+        <file>menu/undo.png</file>
+        <file>menu/save.png</file>
+        <file>menu/save_as.png</file>
+        <file>menu/new_window.png</file>
+        <file>menu/help.png</file>
+        <file>menu/open.png</file>
+        <file>tools/cursor.png</file>
+        <file>tools/cut.png</file>
+    </qresource>
+</RCC>
