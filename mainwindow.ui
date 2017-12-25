@@ -57,20 +57,34 @@
    </widget>
    <widget class="QMenu" name="menu_2">
     <property name="title">
-     <string>编辑(E)</string>
+     <string>编辑(&amp;E)</string>
     </property>
     <addaction name="action_Undo"/>
     <addaction name="action_Redo"/>
    </widget>
    <widget class="QMenu" name="menu_3">
     <property name="title">
-     <string>图像(I)</string>
+     <string>彩色图像(&amp;C)</string>
     </property>
+    <widget class="QMenu" name="menu_4">
+     <property name="title">
+      <string>通道分离</string>
+     </property>
+     <addaction name="channel_red"/>
+     <addaction name="channel_green"/>
+     <addaction name="channel_blue"/>
+    </widget>
+    <addaction name="menu_4"/>
+    <addaction name="rgb_gray"/>
+    <addaction name="adjust_HSL"/>
+    <addaction name="adjust_color_levels"/>
    </widget>
    <widget class="QMenu" name="menu_W">
     <property name="title">
-     <string>窗口(&amp;W)</string>
+     <string>二值化(&amp;B)</string>
     </property>
+    <addaction name="binary_Otsu"/>
+    <addaction name="binary_handson"/>
    </widget>
    <widget class="QMenu" name="menu_H">
     <property name="title">
@@ -87,63 +101,6 @@
    <addaction name="menu_H"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
-  <widget class="QToolBar" name="toolBar_tools">
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <property name="autoFillBackground">
-    <bool>true</bool>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>LeftToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_move_cursor"/>
-   <addaction name="action_cut_img"/>
-  </widget>
-  <widget class="QToolBar" name="toolBar_attributes">
-   <property name="windowTitle">
-    <string>toolBar_2</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
-  <widget class="QToolBar" name="toolBar_options">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_New"/>
-   <addaction name="action_Open"/>
-  </widget>
-  <widget class="QToolBar" name="toolBar_details">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
   <action name="action_New">
    <property name="icon">
     <iconset resource="res.qrc">
@@ -178,11 +135,15 @@
    </property>
   </action>
   <action name="action_Close">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/res/tools/close.png</normaloff>:/res/tools/close.png</iconset>
+   </property>
    <property name="text">
     <string>关闭(C)</string>
    </property>
    <property name="statusTip">
-    <string>关闭</string>
+    <string>关闭图片</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
@@ -226,7 +187,7 @@
     <string>退出</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Q</string>
+    <string>Ctrl+Q, Esc</string>
    </property>
   </action>
   <action name="action_Undo">
@@ -256,7 +217,7 @@
     <string>重做</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Y</string>
+    <string>Ctrl+X</string>
    </property>
   </action>
   <action name="action_Help">
@@ -282,34 +243,44 @@
     <string>关于</string>
    </property>
   </action>
-  <action name="action_move_cursor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="res.qrc">
-     <normaloff>:/res/tools/cursor.png</normaloff>:/res/tools/cursor.png</iconset>
-   </property>
+  <action name="rgb_gray">
    <property name="text">
-    <string>移动工具</string>
+    <string>转成灰色</string>
    </property>
   </action>
-  <action name="action_cut_img">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="res.qrc">
-     <normaloff>:/res/tools/cut.png</normaloff>:/res/tools/cut.png</iconset>
-   </property>
+  <action name="adjust_HSL">
    <property name="text">
-    <string>裁剪工具</string>
+    <string>调整HSL</string>
    </property>
-   <property name="toolTip">
-    <string>裁剪工具</string>
+  </action>
+  <action name="adjust_color_levels">
+   <property name="text">
+    <string>调整色阶</string>
+   </property>
+  </action>
+  <action name="channel_red">
+   <property name="text">
+    <string>红色通道</string>
+   </property>
+  </action>
+  <action name="channel_blue">
+   <property name="text">
+    <string>蓝色通道</string>
+   </property>
+  </action>
+  <action name="channel_green">
+   <property name="text">
+    <string>绿色通道</string>
+   </property>
+  </action>
+  <action name="binary_Otsu">
+   <property name="text">
+    <string>Otsu</string>
+   </property>
+  </action>
+  <action name="binary_handson">
+   <property name="text">
+    <string>手动调节</string>
    </property>
   </action>
  </widget>

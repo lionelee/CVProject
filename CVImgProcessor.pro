@@ -25,34 +25,39 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 HEADERS += \
         imgwidget.h \
-        mainwindow.h
-#        imgprocess.h \
+        imgprocess.h \
+        mainwindow.h \
+        toolbarinfo.h \
+        toolbartool.h \
+        binarydialog.h \
+        hsldialog.h \
+        histogramwidget.h \
+    toolbaropt.h \
+    cutmodal.h
 
 
 SOURCES += \
         imgwidget.cpp \
+        imgprocess.cpp \
         mainwindow.cpp \
-        main.cpp
-#        imgprocess.cpp \
+        main.cpp \
+        toolbarinfo.cpp \
+        toolbartool.cpp \
+        hsldialog.cpp \
+        binarydialog.cpp \
+        histogramwidget.cpp \
+    toolbaropt.cpp \
+    cutmodal.cpp
 
 FORMS += \
         mainwindow.ui
 
-INCLUDEPATH += C:\opencv\build\install\include\opencv \
-                C:\opencv\build\install\include\opencv2 \
-                C:\opencv\build\install\include
+INCLUDEPATH += C:\opencv\include\opencv \
+                C:\opencv\include\opencv2 \
+                C:\opencv\include
 
-LIBS += -LC:\opencv\build\install\x64\vc15\lib \
--lopencv_calib3d330 \
--lopencv_core330 \
--lopencv_features2d330 \
--lopencv_highgui330 \
--lopencv_imgcodecs330 \
--lopencv_imgproc330 \
--lopencv_ml330 \
--lopencv_objdetect330 \
--lopencv_photo330 \
--lopencv_shape330
+LIBS += -LC:\opencv\lib \
+-lopencv_world331d
 
 RESOURCES += \
     res.qrc

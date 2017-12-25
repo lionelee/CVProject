@@ -1,8 +1,8 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "imgwidget.h"
+#include "hsldialog.h"
+#include "binarydialog.h"
 
-#include <QTabWidget>
 #include <QScrollArea>
 #include <QGridLayout>
 #include <QVBoxLayout>
@@ -10,7 +10,6 @@
 #include <QMessageBox>
 #include <QLineEdit>
 
-/*public fcuntions*/
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -19,71 +18,66 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowIcon(QIcon(":/res/mipmap/lens_32.png"));
     ui->centralWidget->setMouseTracking(true);
 
+    toolbarOpt = new ToolbarOpt(tr("ToolbarOpt"), this);
+    this->addToolBar(Qt::TopToolBarArea, toolbarOpt);
 
-    tabWidget = new QTabWidget();
-    tabWidget->setTabsClosable(true);
-    connect(tabWidget,SIGNAL(tabCloseRequested(int)),this,SLOT(on_tab_Close_triggered(int)));
+    toolbarInfo = new ToolbarInfo(tr("ToolbarInfo"), this);
+    this->addToolBar(Qt::RightToolBarArea, toolbarInfo);
 
+    toolbarTool = new ToolbarTool(tr("ToolbarTool"), this);
+    this->addToolBar(Qt::LeftToolBarArea, toolbarTool);
+
+    scrollArea = new QScrollArea();
+    scrollArea->setAlignment(Qt::AlignCenter);
     QGridLayout *layout = new QGridLayout();
     layout->setMargin(0);
-    layout->addWidget(tabWidget);
+    layout->addWidget(scrollArea);
     ui->centralWidget->setLayout(layout);
 
-    QTabWidget *attr_tab = new QTabWidget();
-    QLabel *label = new QLabel();
-    attr_tab->addTab(label,tr("pic"));
-    ui->toolBar_attributes->addWidget(attr_tab);
 
-    label_posx = new QLabel();
-    label_posy = new QLabel();
-    label_red = new QLabel();
-    label_blue = new QLabel();
-    label_green = new QLabel();
+    label = new QLabel(this);
+    statusBar()->addPermanentWidget(label);
 
-    label_posx->setText(tr("posx: "));
-    label_posy->setText(tr("posy: "));
-    label_red->setText(tr("red: "));
-    label_blue->setText(tr("blue: "));
-    label_green->setText(tr("green: "));
-
-    QWidget *widget_details = new QWidget();
-    QVBoxLayout *vLayout0 = new QVBoxLayout();
-    vLayout0->addWidget(label_posx);
-    vLayout0->addWidget(label_posy);
-    vLayout0->addWidget(label_red);
-    vLayout0->addWidget(label_blue);
-    vLayout0->addWidget(label_green);
-    widget_details->setLayout(vLayout0);
-    ui->toolBar_details->addWidget(widget_details);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete tabWidget;
-    delete label_posx, label_posy;
-    delete label_red, label_blue, label_green;
+    delete scrollArea;
 }
 
-/*protected functions*/
-//bool MainWindow::eventFilter(QObject *watched, QEvent *event)
-//{
-//    ImgWidget *obj = (ImgWidget*)tabWidget->currentWidget();
-//    if(watched != obj){
-//        label_posx->setText(tr("posx: "));
-//        label_posy->setText(tr("posy: "));
-//        label_red->setText(tr("red: "));
-//        label_blue->setText(tr("blue: "));
-//        label_green->setText(tr("green: "));
-//        return true;
-//    }
-//    return false;
+/*public functions*/
+void MainWindow::updateMouseInfo(QString(&info)[6])
+{
+    toolbarInfo->updateMouseInfo(info);
+}
+//voi MainWindow::initToolbarAttr(){
+//    QTabWidget tabs = new QTabWidget();
+//    tabs->setTabsClosable(true);
+//    connect(tabWidget,SIGNAL(tabCloseRequested(int)),this,SLOT(on_tab_Close_triggered(int)));
+
+//    QGridLayout *layout = new QGridLayout();
+
+//    QTabWidget *attr_tab = new QTabWidget();
+//    QLabel *label = new QLabel();
+//    attr_tab->addTab(label,tr("pic"));
+//    ui->toolBar_attributes->addWidget(attr_tab);
 //}
 
-void MainWindow::closeEvent(QCloseEvent *event)
+
+/*protected functions*/
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    for(int i = total; i >= 0; --i)
-        close(i);
+    ImgWidget *obj = (ImgWidget*)(scrollArea->widget());
+    if(watched != obj){
+        return true;
+    }
+    return false;
+}
+
+void MainWindow::closeEvent(QCloseEvent*)
+{
+    on_action_Close_triggered();
     exit(0);
 }
 
@@ -95,23 +89,17 @@ void MainWindow::on_action_New_triggered()
 
 void MainWindow::on_action_Open_triggered()
 {
+    if(imgWidget != NULL)return;
     QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp);;All Format(*.*)");
     QString promt = QString::fromLocal8Bit("打开图片");
-    QString filePath = QFileDialog::getOpenFileName(this, promt, "", filter);
+    filePath = QFileDialog::getOpenFileName(this, promt, "", filter);
 
-    if(filePath==NULL){
-        return;
-    }
-    for(int i = 0; i < total; ++i){
-        if(fileOpened[i] == filePath){
-            tabWidget->setCurrentIndex(i);
-            return;
-        }
-    }
+    if(filePath==NULL) return;
 
     QChar sep('/');
     QString title = filePath.split(sep).back();
-    ImgWidget *imgWidget = new ImgWidget(this);
+    label->setText(title);
+    imgWidget = new ImgWidget(this);
     if(!imgWidget->open(filePath.toStdString())){
         QString promt = QString::fromLocal8Bit("错误");
         QString msg = QString::fromLocal8Bit("无法打开图片 ");
@@ -119,55 +107,84 @@ void MainWindow::on_action_Open_triggered()
         return;
     }
 
-    QScrollArea *scrollArea = new QScrollArea();
+    QMessageBox::information(this,tr("a"),QString::fromStdString(num2str(imgWidget->mat->channels())),QMessageBox::Yes);
+
     scrollArea->setWidget(imgWidget);
-    scrollArea->setAlignment(Qt::AlignCenter);
-
-    tabWidget->addTab(scrollArea,title);
-    tabWidget->setCurrentIndex(total);
-
-    fileOpened.push_back(filePath);
-    isSaved.push_back(true);
-    ++total;
 }
 
 void MainWindow::on_action_Close_triggered()
 {
-    int idx = tabWidget->currentIndex();
-    close(idx);
+    if(imgWidget == NULL) return;
+    if(!imgWidget->isSaved){
+        QChar sep('/');
+        QString fileName = filePath.split(sep).back();
+        QString promt = QString::fromLocal8Bit("警告");
+        QString msg0 = QString::fromLocal8Bit("是否在关闭前保存对 ");
+        QString msg1 = QString::fromLocal8Bit(" 的更改?");
+        QMessageBox::StandardButton btn = QMessageBox::warning(this,promt,msg0+fileName+msg1,
+                                          QMessageBox::Yes|QMessageBox::No|QMessageBox::Cancel, QMessageBox::Yes);
+        if(btn ==  QMessageBox::Yes){
+            imgWidget->save();
+        }
+        else if(btn == QMessageBox::Cancel){
+            return;
+        }
+    }
+    delete imgWidget;
+    imgWidget = NULL;
+    QString s[6]={"","","","","",""};
+    updateMouseInfo(s);
+    scrollArea->setWidget(NULL);
 }
 
 void MainWindow::on_action_Save_triggered()
 {
-    int idx = tabWidget->currentIndex();
-    if(idx < 0 || idx > total-1)
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(!imgWidget->save()){
+        QString promt = QString::fromLocal8Bit("错误");
+        QString msg = QString::fromLocal8Bit("无法保存图片");
+        QString end = QString::fromLocal8Bit("，请确保路径中无中文");
+        QMessageBox::critical(this,promt, msg+filePath+end,QMessageBox::Ok, QMessageBox::Ok);
         return;
-    save(idx);
+    }
 }
 
 void MainWindow::on_action_Save_As_triggered()
 {
-    int idx = tabWidget->currentIndex();
-    if(idx < 0 || idx > total-1)
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp);;All Format(*.*)");
+    QString promt = QString::fromLocal8Bit("打开图片");
+    filePath = QFileDialog::getSaveFileName(this, promt, "", filter);
+    if(filePath==NULL) return;
+
+    QChar sep('/');
+    QString title = filePath.split(sep).back();
+    label->setText(title);
+    if(!imgWidget->saveAs(filePath.toStdString())){
+        QString promt = QString::fromLocal8Bit("错误");
+        QString msg = QString::fromLocal8Bit("无法保存图片");
+        QString end = QString::fromLocal8Bit("，请确保路径中无中文");
+        QMessageBox::critical(this,promt, msg+filePath+end,QMessageBox::Ok, QMessageBox::Ok);
         return;
-    saveAs(idx);
+    }
 }
 
 void MainWindow::on_action_Exit_triggered()
 {
-    for(int i = total-1; i >= 0; --i)
-        close(i);
+    on_action_Close_triggered();
     exit(0);
 }
 
 void MainWindow::on_action_Undo_triggered()
 {
-
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    imgWidget->undo();
 }
 
 void MainWindow::on_action_Redo_triggered()
 {
-
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    imgWidget->redo();
 }
 
 void MainWindow::on_action_Help_triggered()
@@ -180,50 +197,67 @@ void MainWindow::on_action_About_triggered()
 
 }
 
-void MainWindow::on_tab_Close_triggered(int idx){
-    close(idx);
-}
 
-/*private functions*/
-void MainWindow::close(int idx)
+void MainWindow::on_rgb_gray_triggered()
 {
-    if(idx < 0 || idx > total-1)
-        return;
-    if(!isSaved[idx]){
-        QChar sep('/');
-        QString fileName = fileOpened[idx].split(sep).back();
-        QString promt = QString::fromLocal8Bit("警告");
-        QString msg0 = QString::fromLocal8Bit("是否在关闭前保存对 ");
-        QString msg1 = QString::fromLocal8Bit(" 的更改?");
-        QMessageBox::StandardButton btn = QMessageBox::warning(this,promt,msg0+fileName+msg1,
-                                          QMessageBox::Yes|QMessageBox::No|QMessageBox::Cancel, QMessageBox::Yes);
-        if(btn ==  QMessageBox::Yes){
-            save(idx);
-        }
-        else if(btn == QMessageBox::Cancel){
-            return;
-        }
-    }
-    std::vector<QString>::iterator it1 = fileOpened.begin()+idx;
-    fileOpened.erase(it1);
-    std::vector<bool>::iterator it2 = isSaved.begin()+idx;
-    isSaved.erase(it2);
-    tabWidget->removeTab(idx);
-    --total;
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!cvtRGB2GRAY(imgWidget->mat,dst))return;
+    imgWidget->updateImg(dst);
 }
 
-void MainWindow::save(int idx)
+
+
+void MainWindow::on_adjust_HSL_triggered()
 {
-    QString filePath = fileOpened[idx];
-    isSaved[idx] = true;
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=3)return;
+    HSLDialog dialog(this);
+    dialog.exec();
 }
 
-void MainWindow::saveAs(int idx)
+void MainWindow::on_adjust_color_levels_triggered()
 {
-    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp)");
-    QString promt = QString::fromLocal8Bit("图片另存为");
-    QString fileName = QFileDialog::getSaveFileName(NULL,promt,"",filter);
-    isSaved[idx] = true;
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+
 }
 
+void MainWindow::on_channel_red_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_R))return;
+    imgWidget->updateImg(dst);
+}
 
+void MainWindow::on_channel_green_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_G))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_channel_blue_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_B))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_binary_Otsu_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!ostuBinary(imgWidget->mat, dst))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_binary_handson_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryDialog dialog(this);
+    dialog.exec();
+}

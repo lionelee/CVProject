@@ -4,6 +4,12 @@
 #include <QMainWindow>
 #include <vector>
 #include <QLabel>
+#include <QScrollArea>
+#include "toolbarinfo.h"
+#include "toolbartool.h"
+#include "toolbaropt.h"
+#include "imgwidget.h"
+#include "imgprocess.h"
 
 namespace Ui {
 class MainWindow;
@@ -18,9 +24,12 @@ public:
     ~MainWindow();
 
     /*widgets*/
-    QTabWidget *tabWidget;
-    QLabel *label_posx, *label_posy;
-    QLabel *label_red, *label_blue, *label_green;
+    Ui::MainWindow *ui;
+    QScrollArea* scrollArea = NULL;
+    ImgWidget* imgWidget = NULL;
+    ToolbarOpt  *toolbarOpt;
+
+    void updateMouseInfo(QString(&info)[6]);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event);
@@ -32,7 +41,6 @@ private slots:
     void on_action_Open_triggered();
     void on_action_Close_triggered();
     void on_action_Save_triggered();
-    void on_tab_Close_triggered(int);
     void on_action_Exit_triggered();
     void on_action_Undo_triggered();
     void on_action_Redo_triggered();
@@ -40,18 +48,23 @@ private slots:
     void on_action_About_triggered();
     void on_action_Save_As_triggered();
 
+    void on_channel_red_triggered();
+    void on_channel_green_triggered();
+    void on_channel_blue_triggered();
+    void on_rgb_gray_triggered();
+    void on_adjust_HSL_triggered();
+    void on_adjust_color_levels_triggered();
+
+
+    void on_binary_Otsu_triggered();
+    void on_binary_handson_triggered();
+
 private:
-    Ui::MainWindow *ui;
+    ToolbarInfo *toolbarInfo;
+    ToolbarTool *toolbarTool;
+    QLabel *label;
+    QString filePath;
 
-    /*booleans*/
-    std::vector<bool> isSaved;
-    std::vector<QString> fileOpened;
-    int total = 0;
-
-    /*functions*/
-    void close(int);
-    void save(int);
-    void saveAs(int);
 };
 
 #endif // MAINWINDOW_H
