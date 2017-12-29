@@ -75,7 +75,7 @@ bool ImgWidget::saveAs(std::string dstPath)
             return false;
         }
     }else if(mat->channels()==1){
-        if(imwrite(filePath, *mat)){
+        if(imwrite(dstPath, *mat)){
             filePath = dstPath;
             return true;
         } else{
@@ -103,6 +103,7 @@ void ImgWidget::showImg(Mat* src)
     }
     QPixmap pixmap = QPixmap::fromImage(img);
     this->setPixmap(pixmap);
+    this->resize(src->cols,src->rows);
 }
 
 void ImgWidget::updateImg(Mat* src)
@@ -153,32 +154,40 @@ void ImgWidget::setRotateType(int type)
 void ImgWidget::setCut()
 {
     cut_flag = true;
-    cutModal = new CutModal(this);
+    int width = this->width(), height = this->height();
+    cut_rect = QRect(3*width/8,3*height/8,width/4,height/4);
 }
 
 
 /*protected functions*/
-
 void ImgWidget::paintEvent(QPaintEvent *event)
 {
     QLabel::paintEvent(event);
-    if(cut_flag && cutModal != NULL){
+    if(cut_flag){
         QPainterPath painterPath;
         QPainterPath p;
-        p.addRect(x(),y(),rect().width(),rect().height());
-        painterPath.addRect(cutModal->geometry());
+        p.addRect(0,0,this->width(),this->height());
+        painterPath.addRect(cut_rect);
         QPainterPath drawPath =p.subtracted(painterPath);
 
         QPainter paint(this);
         paint.setOpacity(0.7);
-        paint.fillPath(drawPath,QBrush(Qt::black));
+        paint.fillPath(drawPath, QBrush(Qt::black));
     }
+}
+
+void ImgWidget::mousePressEvent(QMouseEvent *event)
+{
+    mouse_down = true;
 }
 
 void ImgWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int posx = event->x();
     int posy = event->y();
+//    if(cut_flag){
+//        if(posx >cut_rect.x() && posx );
+//    }
     if(posx <0 || posx >= mat->cols || posy < 0 ||posy >= mat->rows)
         return;
     int red, green, blue, gray;
@@ -212,11 +221,30 @@ void ImgWidget::mouseMoveEvent(QMouseEvent *event)
 void ImgWidget::wheelEvent(QWheelEvent *event)
 {
     if (event->modifiers() == Qt::ControlModifier){
-        event->accept();
-        if(event->delta() > 0){     //up
-
-        } else {    //down
-
+        int delta = event->delta();
+        Mat* mat_scale;
+        if(delta > 0){     //up
+            if(mat->channels()==1){
+                mat_scale = new Mat(mat->rows*1.1, mat->cols*1.1, CV_8UC1);
+                scaleC1(mat, mat_scale, sca_type);
+            }else if(mat->channels()==3){
+                mat_scale = new Mat(mat->rows*1.1, mat->cols*1.1, CV_8UC3);
+                scaleC3(mat, mat_scale, sca_type);
+            }
+        } else if(delta < 0){    //down
+            if(mat->channels()==1){
+                mat_scale = new Mat(mat->rows/1.1, mat->cols/1.1, CV_8UC1);
+                scaleC1(mat, mat_scale, sca_type);
+            }else if(mat->channels()==3){
+                mat_scale = new Mat(mat->rows/1.1, mat->cols/1.1, CV_8UC3);
+                scaleC3(mat, mat_scale, sca_type);
+            }
+        }else{
+            return;
         }
+        updateImg(mat_scale);
+        event->accept();
+        return;
+
     }
 }

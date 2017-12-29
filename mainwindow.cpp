@@ -2,6 +2,13 @@
 #include "ui_mainwindow.h"
 #include "hsldialog.h"
 #include "binarydialog.h"
+#include "contrastdialog.h"
+#include "filterdialog.h"
+#include "sobeldialog.h"
+#include "cannydialog.h"
+#include "noisedialog.h"
+#include "binarymorphology.h"
+#include "graymorphology.h"
 
 #include <QScrollArea>
 #include <QGridLayout>
@@ -51,19 +58,30 @@ void MainWindow::updateMouseInfo(QString(&info)[6])
 {
     toolbarInfo->updateMouseInfo(info);
 }
-//voi MainWindow::initToolbarAttr(){
-//    QTabWidget tabs = new QTabWidget();
-//    tabs->setTabsClosable(true);
-//    connect(tabWidget,SIGNAL(tabCloseRequested(int)),this,SLOT(on_tab_Close_triggered(int)));
 
-//    QGridLayout *layout = new QGridLayout();
+void MainWindow::adjustContrast()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    ContrastDialog dialog(this);
+    dialog.exec();
+}
 
-//    QTabWidget *attr_tab = new QTabWidget();
-//    QLabel *label = new QLabel();
-//    attr_tab->addTab(label,tr("pic"));
-//    ui->toolBar_attributes->addWidget(attr_tab);
-//}
+void MainWindow::smoothFilter()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    FilterDialog dialog(this);
+    dialog.exec();
+}
 
+void MainWindow::addNoise()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    NoiseDialog dialog(this);
+    dialog.exec();
+}
 
 /*protected functions*/
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
@@ -90,10 +108,9 @@ void MainWindow::on_action_New_triggered()
 void MainWindow::on_action_Open_triggered()
 {
     if(imgWidget != NULL)return;
-    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp);;All Format(*.*)");
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff;*.tif);;BITMAP(*.bmp);;All Format(*.*)");
     QString promt = QString::fromLocal8Bit("打开图片");
     filePath = QFileDialog::getOpenFileName(this, promt, "", filter);
-
     if(filePath==NULL) return;
 
     QChar sep('/');
@@ -107,8 +124,9 @@ void MainWindow::on_action_Open_triggered()
         return;
     }
 
-    QMessageBox::information(this,tr("a"),QString::fromStdString(num2str(imgWidget->mat->channels())),QMessageBox::Yes);
-
+    std::string str_size = num2str(imgWidget->mat->rows)+"x"+num2str(imgWidget->mat->cols);
+    std::string channel = num2str(imgWidget->mat->channels());
+    toolbarInfo->updateImageInfo(filePath, str_size, channel);
     scrollArea->setWidget(imgWidget);
 }
 
@@ -133,7 +151,9 @@ void MainWindow::on_action_Close_triggered()
     delete imgWidget;
     imgWidget = NULL;
     QString s[6]={"","","","","",""};
-    updateMouseInfo(s);
+    toolbarInfo->updateMouseInfo(s);
+    filePath = tr("");
+    toolbarInfo->updateImageInfo(filePath,"","");
     scrollArea->setWidget(NULL);
 }
 
@@ -152,21 +172,24 @@ void MainWindow::on_action_Save_triggered()
 void MainWindow::on_action_Save_As_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp);;All Format(*.*)");
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff;*.tif);;BITMAP(*.bmp);;All Format(*.*)");
     QString promt = QString::fromLocal8Bit("打开图片");
-    filePath = QFileDialog::getSaveFileName(this, promt, "", filter);
-    if(filePath==NULL) return;
-
+    QString savePath = QFileDialog::getSaveFileName(this, promt, "", filter);
+    if(savePath==NULL) return;
     QChar sep('/');
-    QString title = filePath.split(sep).back();
+    QString title = savePath.split(sep).back();
     label->setText(title);
-    if(!imgWidget->saveAs(filePath.toStdString())){
+    if(!imgWidget->saveAs(savePath.toStdString())){
         QString promt = QString::fromLocal8Bit("错误");
         QString msg = QString::fromLocal8Bit("无法保存图片");
         QString end = QString::fromLocal8Bit("，请确保路径中无中文");
-        QMessageBox::critical(this,promt, msg+filePath+end,QMessageBox::Ok, QMessageBox::Ok);
+        QMessageBox::critical(this,promt, msg+savePath+end,QMessageBox::Ok, QMessageBox::Ok);
         return;
     }
+    filePath = savePath;
+    std::string str_size = num2str(imgWidget->mat->rows)+"x"+num2str(imgWidget->mat->cols);
+    std::string channel = num2str(imgWidget->mat->channels());
+    toolbarInfo->updateImageInfo(filePath, str_size, channel);
 }
 
 void MainWindow::on_action_Exit_triggered()
@@ -186,17 +209,6 @@ void MainWindow::on_action_Redo_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     imgWidget->redo();
 }
-
-void MainWindow::on_action_Help_triggered()
-{
-
-}
-
-void MainWindow::on_action_About_triggered()
-{
-
-}
-
 
 void MainWindow::on_rgb_gray_triggered()
 {
@@ -259,5 +271,103 @@ void MainWindow::on_binary_handson_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
     BinaryDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::on_action_Sobel_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    SobelDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::on_action_Laplacian_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    LaplacianDetect(src, dst);
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_action_Canny_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    CannyDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_ersion_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, EROSION);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_dilation_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, DILATION);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_open_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, OPEN);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_close_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, CLOSE);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_thinning_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, THINNING);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_thicking_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, THICKING);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_skeleton_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, SKELETON);
+    dialog.exec();
+}
+
+void MainWindow::on_ske_reconstruct_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, SKERECON);
+    dialog.exec();
+}
+
+void MainWindow::on_mor_reconstruct_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, MORRECON);
     dialog.exec();
 }

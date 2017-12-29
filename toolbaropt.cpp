@@ -12,13 +12,11 @@ ToolbarOpt::ToolbarOpt(const QString &title, QWidget *parent)
     this->setMovable(true);
     this->setOrientation(Qt::Horizontal);
 
-    std::vector<QAction*> cur_opt;
     cur_opt.push_back(((MainWindow*)parent)->ui->action_New);
     cur_opt.push_back(((MainWindow*)parent)->ui->action_Open);
     cur_opt.push_back(((MainWindow*)parent)->ui->action_Close);
     cur_opt.push_back(((MainWindow*)parent)->ui->action_Save);
     cur_opt.push_back(((MainWindow*)parent)->ui->action_Save_As);
-    opts.push_back(cur_opt);
     this->addAction(cur_opt[0]);
     this->addAction(cur_opt[1]);
     this->addAction(cur_opt[2]);
@@ -26,7 +24,6 @@ ToolbarOpt::ToolbarOpt(const QString &title, QWidget *parent)
     this->addAction(cur_opt[4]);
     idx = CUR_OPT;
 
-    std::vector<QAction*> alg_opt;
     act_add = new QAction(QIcon(":/res/tools/add.png"),tr("add operation"),this);
     act_add->setToolTip(tr("add operation"));
     act_add->setStatusTip(tr("add operation"));
@@ -42,20 +39,24 @@ ToolbarOpt::ToolbarOpt(const QString &title, QWidget *parent)
     alg_opt.push_back(act_add);
     alg_opt.push_back(act_diff);
     alg_opt.push_back(act_mul);
-    opts.push_back(alg_opt);
 
-    std::vector<QAction*> rot_opt;
-    opts.push_back(rot_opt);
-
-    std::vector<QAction*> cut_opt;
-
-    opts.push_back(cut_opt);
-
+    rot_type = new QComboBox(this);
+    rot_type->addItem(tr("Bilinear"));
+    rot_type->addItem(tr("Nearest"));
+    rot_type->setVisible(false);
+    rot_angle = new QSlider(Qt::Horizontal, this);
+    rot_angle->setRange(-180, 180);
+    rot_angle->setValue(0);
+    rot_angle->setVisible(false);
+    this->addWidget(rot_type);
+    this->addWidget(rot_angle);
 
 }
 
 ToolbarOpt::~ToolbarOpt()
 {
+    delete act_add, act_diff, act_mul;
+    delete rot_type, rot_angle;
 }
 
 
@@ -63,9 +64,8 @@ void ToolbarOpt::setCursorOpt()
 {
     removeLast();
     idx = CUR_OPT;
-    size_t size = opts[idx].size();
-    for(int i = 0; i < size; ++i){
-        this->addAction(opts[idx][i]);
+    for(int i = 0; i < cur_opt.size(); ++i){
+        this->addAction(cur_opt[i]);
     }
 }
 
@@ -73,32 +73,20 @@ void ToolbarOpt::setAlgebraOpt()
 {
     removeLast();
     idx = ALG_OPT;
-    size_t size = opts[idx].size();
-    for(int i = 0; i < size; ++i){
-        this->addAction(opts[idx][i]);
+    for(int i = 0; i < alg_opt.size(); ++i){
+        this->addAction(alg_opt[i]);
     }
 }
 
 void ToolbarOpt::setRotateOpt()
 {
-    removeLast();
-    idx = ROT_OPT;
-    size_t size = opts[idx].size();
-    for(int i = 0; i < size; ++i){
-        this->addAction(opts[idx][i]);
-    }
+    rot_type->setVisible(true);
+    rot_angle->setVisible(true);
 }
 
 void ToolbarOpt::setCutOpt()
 {
-    removeLast();
-    idx = CUT_OPT;
-    size_t size = opts[idx].size();
-    for(int i = 0; i < size; ++i){
-        this->addAction(opts[idx][i]);
-    }
-    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
-    img->setCut();
+
 }
 
 
@@ -143,9 +131,18 @@ void ToolbarOpt::on_act_mul_triggered()
 /*private functions*/
 void ToolbarOpt::removeLast()
 {
-    size_t size = opts[idx].size();
-    for(int i = 0; i < size; ++i){
-        this->removeAction(opts[idx][i]);
+    switch (idx) {
+    case CUR_OPT:
+        for(int i = 0; i < cur_opt.size(); ++i){
+            this->removeAction(cur_opt[i]);
+        }
+        break;
+    case ALG_OPT:
+        for(int i = 0; i < alg_opt.size(); ++i){
+            this->removeAction(alg_opt[i]);
+        }
+        break;
+    default: break;
     }
 }
 

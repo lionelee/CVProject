@@ -6,10 +6,8 @@
 #include <QImage>
 #include <QPaintEvent>
 #include <QMouseEvent>
-#include <opencv2/opencv.hpp>
 #include <vector>
 #include "imgprocess.h"
-#include "cutmodal.h"
 
 class ImgWidget: public QLabel
 {
@@ -22,7 +20,6 @@ public:
     bool isSaved = true;
     cv::Mat* mat;
     std::vector<cv::Mat*>backup;
-    CutModal* cutModal = NULL;
 
     bool open(std::string srcPath);
     bool save();
@@ -38,7 +35,9 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event);
+    void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent);
     void wheelEvent(QWheelEvent *event);
 
     /*functions*/
@@ -52,6 +51,10 @@ private:
     int sca_type = BILINEAR;
     int rot_type = BILINEAR;
     bool cut_flag = false;
+    bool mouse_down = false;
+
+    /*cut modal dialog*/
+    QRect cut_rect;
 };
 
 #endif // IMGWIDGET_H

@@ -2,9 +2,8 @@
 #include "mainwindow.h"
 #include "imgwidget.h"
 #include "imgprocess.h"
-#include <QDialogButtonBox>
-#include <QBoxLayout>
 #include <QLabel>
+#include <QBoxLayout>
 #include <QMessageBox>
 
 BinaryDialog::BinaryDialog(QWidget *parent)
@@ -16,7 +15,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     for(int i = 0; i < 256; ++i){
         hist[i] = 0;
     }
-    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent)->scrollArea->widget());
+    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent)->imgWidget);
     getHistogram(img->mat, hist);
     histWidget = new HistogramWidget(this, hist);
     layout_binary->addWidget(histWidget);
@@ -29,7 +28,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     slider_min->setTickPosition(QSlider::TicksBelow);
     hlayout_min->addWidget(label_min);
     hlayout_min->addWidget(slider_min);
-    connect(slider_min, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed(int)));
+    connect(slider_min, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed()));
 
     QHBoxLayout* hlayout_max = new QHBoxLayout();
     QLabel* label_max = new QLabel(tr("max"));
@@ -39,9 +38,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     slider_max->setTickPosition(QSlider::TicksBelow);
     hlayout_max->addWidget(label_max);
     hlayout_max->addWidget(slider_max);
-    connect(slider_max, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed(int)));
-
-
+    connect(slider_max, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed()));
     layout_binary->addLayout(hlayout_min);
     layout_binary->addLayout(hlayout_max);
 
@@ -49,7 +46,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     check_preview->setChecked(true);
     layout_binary->addWidget(check_preview);
 
-    QDialogButtonBox *button = new QDialogButtonBox(this);
+    button = new QDialogButtonBox(this);
     button->addButton( "OK", QDialogButtonBox::YesRole);
     button->addButton( "NO", QDialogButtonBox::NoRole);
     connect(button, SIGNAL(accepted()), this, SLOT(accept()));
@@ -61,7 +58,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
 BinaryDialog::~BinaryDialog()
 {
     delete slider_min, slider_max;
-    delete histWidget;
+    delete histWidget, button;
 }
 
 void BinaryDialog::accept()
@@ -87,19 +84,18 @@ void BinaryDialog::reject()
     QDialog::reject();
 }
 
-void BinaryDialog::on_value_changed(int)
+void BinaryDialog::on_value_changed()
 {
-    if(check_preview->isChecked()){
-        int min = slider_min->value(), max = slider_max->value();
-        if(min > max){
-            max += min;
-            min = max - min;
-            max = max - min;
-        }
-        ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
-        Mat* src = img->mat;
-        Mat mat_binary(src->rows, src->cols, CV_8UC1);
-        if(!handsonBinary(src, &mat_binary, min, max))return;
-        img->showImg(&mat_binary);
+    if(!check_preview->isChecked())return;
+    int min = slider_min->value(), max = slider_max->value();
+    if(min > max){
+        int tmp = max;
+        max = min;
+        min = tmp;
     }
+    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
+    Mat* src = img->mat;
+    Mat mat_binary(src->rows, src->cols, CV_8UC1);
+    if(!handsonBinary(src, &mat_binary, min, max))return;
+    img->showImg(&mat_binary);
 }

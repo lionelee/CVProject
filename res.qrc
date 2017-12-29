@@ -23,5 +23,12 @@
         <file>tools/rotate.png</file>
         <file>tools/close.png</file>
         <file>tools/scale.png</file>
+        <file>tools/contrast.png</file>
+        <file>tools/filter.png</file>
+        <file>operator/sobel_ho.png</file>
+        <file>operator/sobel_ne.png</file>
+        <file>operator/sobel_nw.png</file>
+        <file>operator/sobel_ve.png</file>
+        <file>tools/noise.png</file>
     </qresource>
 </RCC>

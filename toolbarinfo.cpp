@@ -15,20 +15,13 @@ ToolbarInfo::ToolbarInfo(const QString& title, QWidget* parent)
 
     QWidget *minfo = new QWidget();
     QFormLayout *mlayout = new QFormLayout();
-    label_posx = new QLabel();
-    label_posy = new QLabel();
-    label_red = new QLabel();
-    label_blue = new QLabel();
-    label_green = new QLabel();
+    label_posx = new QLabel(tr("posx: "), this);
+    label_posy = new QLabel(tr("posy: "), this);
+    label_red = new QLabel(tr("red: "), this);
+    label_blue = new QLabel(tr("green: "), this);
+    label_green = new QLabel(tr("blue: "), this);
     label_gray = new QLabel();
     label_gray->setVisible(false);
-    label_posx->setText(tr("posx: "));
-    label_posy->setText(tr("posy: "));
-    label_red->setText(tr("red: "));
-    label_green->setText(tr("green: "));
-    label_blue->setText(tr("blue: "));
-
-
     mlayout->addWidget(label_posx);
     mlayout->addWidget(label_posy);
     mlayout->addWidget(label_red);
@@ -36,32 +29,18 @@ ToolbarInfo::ToolbarInfo(const QString& title, QWidget* parent)
     mlayout->addWidget(label_green);
     mlayout->addWidget(label_gray);
     minfo->setLayout(mlayout);
-    tabs->addTab(minfo,tr("Info"));
+    tabs->addTab(minfo,tr("Mouse info"));
 
-//    QWidget *cinfo = new QWidget();
-//    QFormLayout *clayout = new QFormLayout();
-//    group = new QButtonGroup();
-//    chl_rgb = new QRadioButton(tr("channel RGB"));
-//    chl_rgb->setChecked(true);
-//    chl_red = new QRadioButton(tr("channel RED"));
-//    chl_green = new QRadioButton(tr("channel GREEN"));
-//    chl_blue = new QRadioButton(tr("channel BLUE"));
-
-//    group->addButton(chl_rgb);
-//    group->setId(chl_rgb, CHANNEL_RGB);
-//    group->addButton(chl_red);
-//    group->setId(chl_red,CHANNEL_R);
-//    group->addButton(chl_green);
-//    group->setId(chl_green,CHANNEL_G);
-//    group->addButton(chl_blue);
-//    group->setId(chl_blue,CHANNEL_B);
-
-//    clayout->addWidget(chl_rgb);
-//    clayout->addWidget(chl_red);
-//    clayout->addWidget(chl_green);
-//    clayout->addWidget(chl_blue);
-//    cinfo->setLayout(clayout);
-//    tabs->addTab(cinfo,tr("Channel"));
+    QWidget *cinfo = new QWidget();
+    QFormLayout *clayout = new QFormLayout();
+    label_path = new QLabel(this);
+    label_size = new QLabel(this);
+    label_channel = new QLabel(this);
+    clayout->addWidget(label_path);
+    clayout->addWidget(label_size);
+    clayout->addWidget(label_channel);
+    cinfo->setLayout(clayout);
+    tabs->addTab(cinfo,tr("Image info"));
     this->addWidget(tabs);
 }
 
@@ -70,6 +49,7 @@ ToolbarInfo::~ToolbarInfo()
     delete tabs;
     delete label_red, label_blue, label_green;
     delete label_posx, label_posy;
+    delete label_path, label_size, label_channel;
 }
 
 void ToolbarInfo::updateMouseInfo(QString(&info)[6])
@@ -96,6 +76,12 @@ void ToolbarInfo::updateMouseInfo(QString(&info)[6])
     }
 }
 
-/*private slots functions*/
-
+void ToolbarInfo::updateImageInfo(QString &path, std::string size, std::string channel)
+{
+    label_path->setText(tr("path:")+path);
+    label_path->setWordWrap(true);
+    label_path->adjustSize();
+    label_size->setText(tr("size:")+QString::fromStdString(size));
+    label_channel->setText(tr("channel:")+QString::fromStdString(channel));
+}
 

@@ -5,8 +5,6 @@
 #include <QToolBar>
 #include <QTabWidget>
 #include <QLabel>
-#include <QRadioButton>
-#include <QButtonGroup>
 
 class ToolbarInfo: public QToolBar
 {
@@ -17,17 +15,14 @@ public:
     ~ToolbarInfo();
 
     void updateMouseInfo(QString(&info)[6]);
-
-private slots:
+    void updateImageInfo(QString& path, std::string size, std::string channel);
 
 private:
     /*widgets*/
     QTabWidget *tabs;
     QLabel *label_posx, *label_posy;
     QLabel *label_red, *label_blue, *label_green, *label_gray;
-
-    QButtonGroup *group;
-    QRadioButton *chl_rgb, *chl_red, *chl_blue, *chl_green;
+    QLabel *label_path, *label_size, *label_channel;
 
 };
 

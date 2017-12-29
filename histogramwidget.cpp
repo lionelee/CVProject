@@ -4,8 +4,8 @@
 HistogramWidget::HistogramWidget(QWidget* parent, int* _hist )
     :QLabel(parent)
 {
-    this->setMinimumWidth(100);
-    this->setMinimumHeight(80);
+    this->setMinimumWidth(400);
+    this->setMinimumHeight(100);
     hist = _hist;
 }
 

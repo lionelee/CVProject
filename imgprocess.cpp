@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <strstream>
 #include <QMessageBox>
+#include <vector>
+#include <algorithm>
+
+#define PI 3.1415926
 
 std::string num2str(int num){
     std::stringstream ss;
@@ -98,71 +102,35 @@ bool cvtRGB2HSL(Mat *src, Mat *dst)
         uchar* data_in = src->ptr(i);
         double* data_out = dst->ptr<double>(i);
         for(int j = 0; j < cols; j+=3){
-            double R = data_in[j] * 1.0 / 255;
-            double G = data_in[j+1] * 1.0 / 255;
-            double B = data_in[j+2] * 1.0 / 255;
+            double R = data_in[j] / 255.0;
+            double G = data_in[j+1] / 255.0;
+            double B = data_in[j+2] / 255.0;
             double min = MIN(MIN(R,G),B);
             double max = MAX(MAX(R,G),B);
 
-//            double delta = vmax - vmin;
-
-//            double dr, dg, db;
-
-//            *l = (vmax+vmin) / 2;
-
-//            if (0 == delta)
-//            {
-//            *h = 0;
-//            *s = 0;
-//            }
-//            else
-//            {
-//            if (*l < 0.5)
-//            *s = delta / (vmax+vmin);
-//            else
-//            *s = delta / (2-vmax-vmin);
-
-//            dr = (((vmax-var_R)/6) + (delta/2))/delta;
-//            dg = (((vmax-var_G)/6) + (delta/2))/delta;
-//            db = (((vmax-var_B)/6) + (delta/2))/delta;
-
-//            if (var_R == vmax)
-//            *h = db - dg;
-//            else if (var_G == vmax)
-//            *h = (1.0/3.0) + dr - db;
-//            else if (var_B == vmax)
-//            *h = (2.0/3.0) + dg - dr;
-
-//            if (*h < 0)
-//            *h += 1;
-//            if (*h > 1)
-//            *h -= 1;
-//            }
-
+            double delta = max - min;
             double H = 0.0;
-            if (max == min){
+            if (delta == 0.0){
                 H = 0.0;
-            }else if (max == R && G > B){
-                H = 60.0*(G-B)/(max-min);
-            }else if (max == R && G < B){
-                H = 60.0*(G-B)/(max-min)+360.0;
+            }else if (max == R){
+                H = (G-B)/(6*delta);
             }else if (max == G){
-                H = 60.0*(B-R)/(max-min)+120.0;
+                H = (B-R)/(6*delta)+(1.0/3.0);
             }else if (max == B){
-                H = 60.0*(R-G)/(max-min)+240.0;
+                H = (R-G)/(6*delta)+(2.0/3.0);
             }
-            if(H > 360.0) H = 360.0;
-            else if(H < 0) H = 0.0;
-            H = H / 360.0;
+            if(H < 0) H += 1.0;
+            if(H > 1) H -= 1.0;
 
             double L = (max + min)/2;
             double S = 0;
-            if (L == 0.0 || max == min){
+            if (L == 0.0 || delta == 0.0){
                 S = 0;
             }else if (L > 0.0 && L < 0.5){
-                S = (max-min)/(max+min);
-            }else if (L > 0.5){
-                S = (max-min)/(2-max-min);
+                S = delta/(max+min);
+            }else if (L >=
+                      0.5){
+                S = delta/(2-max-min);
             }
             data_out[j] = H;
             data_out[j+1] = S;
@@ -550,3 +518,725 @@ bool mulMat(Mat* src, Mat* dst)
         return false;
     }
 }
+
+bool scaleC1(Mat* src, Mat* dst, int type)
+{
+    if(src->channels() != 1)return false;
+    int rows = dst->rows, cols = dst->cols;
+    double xratio = src->rows / (double)rows, yratio = src->cols / (double)cols;
+    uchar* data_in = src->data;
+    uchar* data_out = dst->data;
+    for(int i = 0; i < rows; ++i){
+        double y_res = i * xratio;
+        for(int j = 0; j < cols; ++j){
+            double x_res = j * yratio;
+            if(type == BILINEAR){
+                int y = (int)y_res;
+                double v0 = y_res - y, v1 = 1.0 - v0;
+                int x = (int)x_res;
+                double u0 = x_res - x, u1 = 1.0 - u0;
+                int idx00 = y * cols + x;
+                int idx01 = idx00;
+                if(y < rows-1) idx01 += cols;
+                int idx10 = idx00, idx11 = idx01;
+                if(x < cols-1){
+                    idx10 += 1;
+                    idx11 += 1;
+                }
+
+                double gray = v1*(u0*data_in[idx10]+u1*data_in[idx00])+
+                              v0*(u0*data_in[idx11]+u1*data_in[idx01]);
+                *data_out = (uchar)round(gray);
+            }else if (type == NEAREST){
+                int y = (uchar)round(y_res), x = (uchar)round(x_res);
+                *data_out = data_in[y * cols + x];
+            }else{
+                return false;
+            }
+            ++data_out;
+
+        }
+    }
+    return true;
+}
+
+bool scaleC3(Mat* src, Mat* dst, int type)
+{
+    if(src->channels() != 3)return false;
+    int rows = dst->rows, cols = dst->cols;
+    int src_size = src->rows * src->cols - 1;
+    double xratio = src->rows / (double)rows, yratio = src->cols / (double)cols;
+
+    Vec3b* data_in = (Vec3b*)src->data;
+    Vec3b* data_out = (Vec3b*)dst->data;
+    for(int i = 0; i < rows; ++i){
+        double y_res = i * xratio;
+        for(int j = 0; j < cols; ++j){
+            double x_res = j * yratio;
+            if(type == BILINEAR){
+                int y = (int)y_res;
+                double v0 = y_res - y, v1 = 1.0 - v0;
+                int x = (int)x_res;
+                double u0 = x_res - x, u1 = 1.0 - u0;
+                int idx00 = y * cols + x;
+                idx00 = MIN(idx00, src_size);
+                int idx01 = idx00;
+                if(y < rows-1) idx01 += cols;
+                int idx10 = idx00, idx11 = idx01;
+                if(x < cols-1){
+                    idx10 += 1;
+                    idx11 += 1;
+                }
+
+                double red = v1*(u0*data_in[idx10][0]+u1*data_in[idx00][0])+
+                              v0*(u0*data_in[idx11][0]+u1*data_in[idx01][0]);
+                double green = v1*(u0*data_in[idx10][1]+u1*data_in[idx00][1])+
+                              v0*(u0*data_in[idx11][1]+u1*data_in[idx01][1]);
+                double blue = v1*(u0*data_in[idx10][2]+u1*data_in[idx00][2])+
+                              v0*(u0*data_in[idx11][2]+u1*data_in[idx01][2]);
+                (*data_out)[0] = (uchar)round(red);
+                (*data_out)[1] = (uchar)round(green);
+                (*data_out)[2] = (uchar)round(blue);
+            }else if (type == NEAREST){
+                int y = (uchar)round(y_res), x = (uchar)round(x_res);
+                int pos = MIN(y*cols+x, src_size);
+                (*data_out)[0] = data_in[pos][0];
+                (*data_out)[1] = data_in[pos][1];
+                (*data_out)[2] = data_in[pos][2];
+            }else{
+                return false;
+            }
+            ++data_out;
+
+        }
+    }
+    return true;
+}
+
+bool rotateC1(Mat* src, Mat* dst, double angle, int type)
+{
+    if(src->channels() != 1)return false;
+    int rows = dst->rows, cols = dst->cols;
+    double cosa = cos(angle), sina = sin(angle);
+
+    uchar* data_in = src->data;
+    uchar* data_out = dst->data;
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j){
+            double x_res = j*cosa+i*sina, y_res = i*cosa-j*sina;
+            if(type == BILINEAR){
+                int y = (int)y_res;
+                double v0 = y_res - y, v1 = 1.0 - v0;
+                int x = (int)x_res;
+                double u0 = x_res - x, u1 = 1.0 - u0;
+                int idx00 = y * cols + x;
+                int idx01 = idx00;
+                if(y < rows-1) idx01 += cols;
+                int idx10 = idx00, idx11 = idx01;
+                if(x < cols-1){
+                    idx10 += 1;
+                    idx11 += 1;
+                }
+
+                double gray = v1*(u0*data_in[idx10]+u1*data_in[idx00])+
+                              v0*(u0*data_in[idx11]+u1*data_in[idx01]);
+                *data_out = (uchar)round(gray);
+            }else if (type == NEAREST){
+                int y = (uchar)round(y_res), x = (uchar)round(x_res);
+                *data_out = data_in[y * cols + x];
+            }else{
+                return false;
+            }
+            ++data_out;
+
+        }
+    }
+    return true;
+}
+
+bool rotateC3(Mat* src, Mat* dst, double angle, int type)
+{
+//    int rows = dst->rows, cols = dst->cols;
+//    int src_size = src->rows * src->cols - 1;
+//    double cosa = cos(angle), sina = sin(angle);
+
+//    Vec3b* data_in = (Vec3b*)src->data;
+//    Vec3b* data_out = (Vec3b*)dst->data;
+//    for(int i = 0; i < rows; ++i){
+//        for(int j = 0; j < cols; ++j){
+//            if(type == BILINEAR){
+//                int y = (int)y_res;
+//                double v0 = y_res - y, v1 = 1.0 - v0;
+//                int x = (int)x_res;
+//                double u0 = x_res - x, u1 = 1.0 - u0;
+//                int idx00 = y * cols + x;
+//                int idx01 = idx00;
+//                if(y < rows-1) idx01 += cols;
+//                int idx10 = idx00, idx11 = idx01;
+//                if(x < cols-1){
+//                    idx10 += 1;
+//                    idx11 += 1;
+//                }
+
+//                double red = v1*(u0*data_in[idx10][0]+u1*data_in[idx00][0])+
+//                              v0*(u0*data_in[idx11][0]+u1*data_in[idx01][0]);
+//                double green = v1*(u0*data_in[idx10][1]+u1*data_in[idx00][1])+
+//                              v0*(u0*data_in[idx11][1]+u1*data_in[idx01][1]);
+//                double blue = v1*(u0*data_in[idx10][2]+u1*data_in[idx00][2])+
+//                              v0*(u0*data_in[idx11][2]+u1*data_in[idx01][2]);
+//                (*data_out)[0] = (uchar)round(red);
+//                (*data_out)[1] = (uchar)round(green);
+//                (*data_out)[2] = (uchar)round(blue);
+//            }else if (type == NEAREST){
+//                int y = (uchar)round(y_res), x = (uchar)round(x_res);
+//                int pos = MIN(y*cols+x, src_size);
+//                (*data_out)[0] = data_in[pos][0];
+//                (*data_out)[1] = data_in[pos][1];
+//                (*data_out)[2] = data_in[pos][2];
+//            }else{
+//                return false;
+//            }
+//            ++data_out;
+
+//        }
+//    }
+    return true;
+}
+
+bool cutC1(Mat* src, Mat* dst, int x, int y)
+{
+    if(src->channels()!=1)return false;
+    int h = dst->rows, w = dst->cols;
+    int rangex = x + w, rangey = y + h;
+    for(int i = y; i < rangey; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i-y);
+        for(int j = x; j < rangex; ++j){
+            data_out[j-x] = data_in[j];
+        }
+    }
+    return true;
+}
+
+bool cutC3(Mat* src, Mat* dst, int x, int y)
+{
+    if(src->channels()!=3)return false;
+    int h = dst->rows, w = dst->cols;
+    int rangex = x + w, rangey = y + h;
+    for(int i = y; i < rangey; ++i){
+        Vec3b* data_in = src->ptr<Vec3b>(i);
+        Vec3b* data_out = dst->ptr<Vec3b>(i-y);
+        for(int j = x; j < rangex; ++j){
+            data_out[j-x][0] = data_in[j][0];
+            data_out[j-x][1] = data_in[j][1];
+            data_out[j-x][2] = data_in[j][2];
+        }
+    }
+    return true;
+}
+
+//contrast gradient adjustment
+bool getGrayRange(Mat* src, int& min, int& max)
+{
+    if(src->channels() != 1)return false;
+    int rows = src->rows, cols = src->cols;
+    if (src->isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    max = min = 0;
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            if(data_in[j] < min){
+                min = data_in[i];
+            }else if (data_in[j] > max){
+                max = data_in[j];
+            }
+        }
+    }
+    return true;
+}
+
+bool linearAdjust(Mat* src, Mat* dst, int min, int max)
+{
+    if(src->channels()!=1)return false;
+    int smin = 0, smax = 0;
+    getGrayRange(src, smin, smax);
+    int rows = src->rows, cols = src->cols;
+    double slope = (max - min) / (double)(smax - smin);
+    double inter = min - slope * smin;
+    if (src->isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            double tmp = round(data_in[j]*slope+inter);
+            data_out[j] = (uchar)MIN(tmp, (double)255);
+        }
+    }
+    return true;
+}
+
+bool piecewiseAdjust(Mat* src, Mat* dst, int smin, int smax, int dmin, int dmax)
+{
+    if(src->channels()!=1)return false;
+    int rows = src->rows, cols = src->cols;
+    int src_min = 0, src_max = 0;
+    getGrayRange(src, src_min, src_max);
+    double slope1 = (dmin - src_min) / (double)(smin - src_min);
+    double inter1 = src_min - slope1 * src_min;
+    double slope2 = (dmax - dmin) / (double)(smax - smin);
+    double inter2 = dmin - slope2 * smin;
+    double slope3 = (src_max - dmax) / (double)(src_max - smax);
+    double inter3 = dmax - slope3 * smax;
+    if (src->isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            double tmp = 0;
+            if(data_in[j] < smin){
+                tmp = round(data_in[j]*slope1+inter1);
+            }else if(data_in[j] <smax){
+                tmp = round(data_in[j]*slope2+inter2);
+            }else{
+                tmp = round(data_in[j]*slope3+inter3);
+            }
+            data_out[j] = (uchar)MIN(tmp, (double)255);
+        }
+    }
+    return true;
+}
+
+bool logAdjust(Mat* src, Mat* dst, double coeff)
+{
+    if(src->channels()!=1)return false;
+    int rows = src->rows, cols = src->cols;
+    if (src->isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            double tmp = round(coeff*log(1+data_in[j]));
+            data_out[j] = (uchar)MIN(tmp, (double)255);
+        }
+    }
+    return true;
+}
+
+bool expAdjust(Mat* src, Mat* dst, double coeff1, double coeff2)
+{
+    if(src->channels()!=1)return false;
+    int rows = src->rows, cols = src->cols;
+    if (src->isContinuous()) {
+        cols *= rows;
+        rows = 1;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            double tmp = round(coeff1*pow(data_in[j],coeff2));
+            data_out[j] = (uchar)MIN(tmp, (double)255);
+        }
+    }
+    return true;
+}
+
+bool equalization(Mat* src, Mat* dst)
+{
+    if(src->channels()!=1)return false;
+    int* hist = new int[256];
+    for(int i = 0; i < 256; ++i){
+        hist[i] = 0;
+    }
+    int rows = src->rows, cols = src->cols, size = rows * cols;
+    getHistogram(src, hist);
+    std::vector<double> p;
+    p.push_back(hist[0]/(double)size);
+    for(int i = 1; i < 256; ++i){
+        double tmp = hist[i]/((double)size);
+        p.push_back(p[i-1]+tmp);
+    }
+    if(src->isContinuous()){
+        rows = 1;
+        cols = size;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            int idx = data_in[j];
+            double res = round(255*p[idx]);
+            data_out[j] = (uchar)MIN(res,(double)255);
+        }
+    }
+    return true;
+}
+
+
+//smoothing filter
+bool saltNoise(Mat* src, int n)
+{
+    int flag = src->channels();
+    if(flag != 1 && flag != 3)return false;
+    for(int k = 0; k < n; ++k){
+        int i = rand()%src->rows;
+        int j = rand()%src->cols;
+        if(flag==1){
+            src->at<uchar>(i,j) = 255;
+        }else{
+            src->at<Vec3b>(i,j)[0] = 255;
+            src->at<Vec3b>(i,j)[1] = 255;
+            src->at<Vec3b>(i,j)[2] = 255;
+        }
+    }
+    return true;
+}
+
+bool pepperNoise(Mat* src, int n)
+{
+    int flag = src->channels();
+    if(flag != 1 && flag != 3)return false;
+    for(int k = 0; k < n; ++k){
+        int i = rand()%src->rows;
+        int j = rand()%src->cols;
+        if(flag==1){
+            src->at<uchar>(i,j) = 0;
+        }else{
+            src->at<Vec3b>(i,j)[0] = 0;
+            src->at<Vec3b>(i,j)[1] = 0;
+            src->at<Vec3b>(i,j)[2] = 0;
+        }
+    }
+    return true;
+}
+
+bool meanFilter(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    src->copyTo(*dst);
+    int krows = kernel->rows, kcols = src->cols;
+    int ksum = 0;
+    for(int m = 0; m < krows; ++m){
+        for(int n = 0; n < kcols; ++n){
+            ksum += kernel->ptr(m)[n];
+        }
+    }
+    std::vector<uchar*> pix(krows);
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            int sum = 0;
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    sum += pix[m][j+n]*kernel->ptr(m)[n];
+                }
+            }
+            double tmp = sum/(double)ksum;
+            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(round(tmp),255);
+        }
+    }
+    return true;
+}
+
+bool meanFilter(Mat *src, Mat *dst, int rows, int cols, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    src->copyTo(*dst);
+    int krows = rows, kcols = cols, ksize = krows*kcols;
+    std::vector<uchar*> pix(krows);
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            int sum = 0;
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    sum += pix[m][j+n];
+                }
+            }
+            double tmp = sum/(double)ksize;
+            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(round(tmp),255);
+        }
+    }
+    return true;
+}
+
+bool medianFilter(Mat* src, Mat* dst, int rows, int cols, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    src->copyTo(*dst);
+    int krows = rows, kcols = cols, ksize = krows*kcols;
+    std::vector<uchar*> pix(krows);
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            std::vector<uchar> vec;
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    vec.push_back(pix[m][j+n]);
+                }
+            }
+            std::sort(vec.begin(), vec.end());
+            dst->ptr(i+anchory)[j+anchorx] = vec[ksize/2];
+        }
+    }
+    return true;
+}
+
+bool calGaussianFilter(Mat* kernel, double variance){
+    if(kernel->channels() != 1)return false;
+    double coeff0 = 0.5 / pow(variance, 2), coeff1 = coeff0 / PI;
+    int rows = kernel->rows, cols = kernel->cols;
+    int centery = rows / 2, centerx = cols / 2;
+    for(int i = 0; i < rows; ++i){
+        double* data = kernel->ptr<double>(i);
+        for(int j = 0; j < cols; ++j){
+            int dx = j - centerx, dy = i - centery;
+            double k = -(dx*dx+dy*dy)*coeff0;
+            data[j] = coeff1*exp(k);
+        }
+    }
+    return true;
+}
+
+bool GaussianFilter(Mat* src, Mat* dst, Mat* kernel,int anchorx, int anchory)
+{
+    if(src->channels()!=1 || kernel->channels() != 1)return false;
+    double ksum = 0;
+    int krows = kernel->rows, kcols = kernel->cols;
+    for(int i = 0; i < krows; ++i){
+        double* data = kernel->ptr<double>(i);
+        for(int j = 0; j < kcols; ++j){
+            ksum += data[j];
+        }
+    }
+    src->copyTo(*dst);
+    std::vector<uchar*> pix(krows);
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            double sum = 0;
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    sum += pix[m][j+n] * kernel->ptr<double>(m)[n];
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(round(sum/ksum),255);
+        }
+    }
+    return true;
+}
+
+//edge detection
+bool convolution(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    int krows = kernel->rows, kcols = kernel->cols;
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    std::vector<uchar*> pix(krows);
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            int sum = 0;
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    sum += pix[m][j+n]*((int)kernel->ptr<char>(m)[n]);
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = sum;
+        }
+    }
+    return true;
+}
+
+bool SobelDetect(Mat* src, Mat* dst, int type)
+{
+    if(src->channels() != 1)return false;
+    Mat kernel(3,3,CV_8SC1);
+    switch (type) {
+    case 0:
+        kernel = (Mat_<char>(3,3)<<-1,-2,-1,0,0,0,1,2,1);
+        break;
+    case 1:
+        kernel = (Mat_<char>(3,3)<<-1,0,1,-2,0,2,-1,0,1);
+        break;
+    case 2:
+        kernel = (Mat_<char>(3,3)<<0,1,2,-1,0,1,-2,-1,0);
+        break;
+    case 3:
+        kernel = (Mat_<char>(3,3)<<-2,-1,0,-1,0,1,0,1,2);
+        break;
+    default: return false;
+    }
+    src->copyTo(*dst);
+    return convolution(src, dst, &kernel, 1, 1);
+}
+
+bool LaplacianDetect(Mat* src, Mat* dst)
+{
+    if(src->channels() != 1)return false;
+    Mat kernel(3,3,CV_8SC1);
+    kernel = (Mat_<char>(3,3)<<0,-1,0,-1,4,-1,0,-1,0);
+    src->copyTo(*dst);
+    return convolution(src, dst, &kernel, 1, 1);
+}
+
+bool CannyDetect(Mat* src, Mat* dst, int low, int high, int size)
+{
+    if(src->channels() != 1)return false;
+    Mat kernel(size, size, CV_64FC1);
+    calGaussianFilter(&kernel, 0.5);
+    src->copyTo(*dst);
+    if(!convolution(src, dst, &kernel, size/2, size/2))return false;
+    return true;
+}
+
+
+
+//binary morphologic transformation
+void reflectKernel(Mat* kernel)
+{
+    if(kernel->channels()!=1)return;
+    int rows = kernel->rows, cols = kernel->cols;
+    Mat tmp(rows, cols, CV_8SC1);
+    for(int i = 0; i < rows; ++i){
+        char* data_in = kernel->ptr<char>(rows-1 - i);
+        char* data_out = tmp.ptr<char>(i);
+        for(int j = 0; j < cols; ++j){
+            data_out[j] = data_in[cols-1 - j];
+        }
+    }
+    tmp.copyTo(*kernel);
+}
+
+bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    int krows = kernel->rows, kcols = kernel->cols;
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    std::vector<uchar*> pix(krows);
+    reflectKernel(kernel);
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    if(kernel->ptr(m)[n] & pix[m][j+n]){
+                        dst->ptr(i+anchory)[j+anchorx] = 255;
+                        goto nextloop;
+                    }
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = 0;
+            nextloop:;
+        }
+    }
+    return true;
+}
+
+bool erosion(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    int krows = kernel->rows, kcols = kernel->cols;
+    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    std::vector<uchar*> pix(krows);
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    if(!(kernel->ptr(m)[n] & pix[m][j+n])){
+                        dst->ptr(i+anchory)[j+anchorx] = 0;
+                        goto nextloop;
+                    }
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = 255;
+            nextloop:;
+        }
+    }
+    return true;
+}
+
+void matAnd(Mat* src1, Mat* src2,Mat* dst)
+{
+    for(int i = 0; i < src1->rows; ++i){
+        uchar* data_in1 = src1->ptr(i);
+        uchar* data_in2 = src2->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < src1->cols; ++j){
+            data_out[j] = data_in1[j] & data_in2[j];
+        }
+    }
+}
+
+void matOr(Mat* src1, Mat* src2,Mat* dst)
+{
+    for(int i = 0; i < src1->rows; ++i){
+        uchar* data_in1 = src1->ptr(i);
+        uchar* data_in2 = src2->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < src1->cols; ++j){
+            data_out[j] = data_in1[j] | data_in2[j];
+        }
+    }
+}
+
+void matNot(Mat* src, Mat* dst)
+{
+    for(int i = 0; i < src->rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < src->cols; ++j){
+            data_out[j] = 255 - data_in[j];
+        }
+    }
+}
+
+void hitOrMiss(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    Mat con(src->rows, src->cols, CV_8UC1);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    matNot(src, &con);
+    erosion(src, &tmp1, kernel, anchorx, anchory);
+    erosion(&con, &tmp2, kernel, anchorx, anchory);
+    matAnd(&tmp1, &tmp2, dst);
+}
+
+bool thinning(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    hitOrMiss(src, &tmp, kernel, anchorx, anchory);
+    matNot(&tmp, &tmp);
+    matAnd(src, &tmp, dst);
+    return true;
+}
+
+bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    hitOrMiss(src, &tmp, kernel, anchorx, anchory);
+    matOr(src, &tmp, dst);
+    return true;
+}
+
+
+

@@ -33,7 +33,13 @@ HEADERS += \
         hsldialog.h \
         histogramwidget.h \
     toolbaropt.h \
-    cutmodal.h
+    contrastdialog.h \
+    filterdialog.h \
+    sobeldialog.h \
+    noisedialog.h \
+    cannydialog.h \
+    binarymorphology.h \
+    graymorphology.h
 
 
 SOURCES += \
@@ -47,7 +53,13 @@ SOURCES += \
         binarydialog.cpp \
         histogramwidget.cpp \
     toolbaropt.cpp \
-    cutmodal.cpp
+    contrastdialog.cpp \
+    filterdialog.cpp \
+    sobeldialog.cpp \
+    noisedialog.cpp \
+    cannydialog.cpp \
+    binarymorphology.cpp \
+    graymorphology.cpp
 
 FORMS += \
         mainwindow.ui
