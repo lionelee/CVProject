@@ -85,7 +85,15 @@ void matNot(Mat* src, Mat* dst);
 void hitOrMiss(Mat* src, Mat* dst, int anchorx, int anchory);
 bool thinning(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool skeleton(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool morphoReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 
 //gray-level morphologic transformation
+bool grayDilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool grayErosion(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool grayMorphoReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool waterShed();
+
 
 #endif // IMGPROCESS_H

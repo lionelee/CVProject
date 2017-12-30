@@ -30,7 +30,6 @@ public:
     void redo();
 
     void setScaleType(int type);
-    void setRotateType(int type);
     void setCut();
 
 protected:
@@ -49,7 +48,6 @@ private:
     size_t idx = 0;
 
     int sca_type = BILINEAR;
-    int rot_type = BILINEAR;
     bool cut_flag = false;
     bool mouse_down = false;
 

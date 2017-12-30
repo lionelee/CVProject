@@ -99,7 +99,7 @@ ContrastDialog::ContrastDialog(QWidget* parent)
 
 ContrastDialog::~ContrastDialog()
 {
-    delete layout, mat_show, hist;
+    delete layout, hist;
     delete slider_smin, slider_smax, slider_dmin, slider_dmax;
     delete coeff1, coeff2;
     delete check_preview, histWidget;

@@ -1,9 +1,11 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "hsldialog.h"
+#include "rotatedialog.h"
 #include "binarydialog.h"
 #include "contrastdialog.h"
 #include "filterdialog.h"
+#include "customfilter.h"
 #include "sobeldialog.h"
 #include "cannydialog.h"
 #include "noisedialog.h"
@@ -67,11 +69,29 @@ void MainWindow::adjustContrast()
     dialog.exec();
 }
 
+void MainWindow::rotate()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    RotateDialog dialog(this);
+    dialog.exec();
+    std::string str = num2str(imgWidget->mat->rows)+"x"+num2str(imgWidget->mat->cols);
+    toolbarInfo->updateSize(str);
+    toolbarInfo->updateChannel(num2str(imgWidget->mat->channels()));
+}
+
 void MainWindow::smoothFilter()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
     FilterDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::customFilter()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    CustomFilter dialog(this);
     dialog.exec();
 }
 
@@ -108,7 +128,7 @@ void MainWindow::on_action_New_triggered()
 void MainWindow::on_action_Open_triggered()
 {
     if(imgWidget != NULL)return;
-    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff;*.tif);;BITMAP(*.bmp);;All Format(*.*)");
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff);;BITMAP(*.bmp);;All Format(*.*)");
     QString promt = QString::fromLocal8Bit("打开图片");
     filePath = QFileDialog::getOpenFileName(this, promt, "", filter);
     if(filePath==NULL) return;
@@ -121,6 +141,11 @@ void MainWindow::on_action_Open_triggered()
         QString promt = QString::fromLocal8Bit("错误");
         QString msg = QString::fromLocal8Bit("无法打开图片 ");
         QMessageBox::critical(this,promt, msg+filePath,QMessageBox::Ok, QMessageBox::Ok);
+        if(imgWidget!=NULL){
+            imgWidget->resize(100, 100);
+            delete imgWidget;
+            imgWidget = NULL;
+        }
         return;
     }
 
@@ -148,6 +173,7 @@ void MainWindow::on_action_Close_triggered()
             return;
         }
     }
+    imgWidget->resize(100, 100);
     delete imgWidget;
     imgWidget = NULL;
     QString s[6]={"","","","","",""};
@@ -172,7 +198,7 @@ void MainWindow::on_action_Save_triggered()
 void MainWindow::on_action_Save_As_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff;*.tif);;BITMAP(*.bmp);;All Format(*.*)");
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;TIFF(*.tiff);;BITMAP(*.bmp);;All Format(*.*)");
     QString promt = QString::fromLocal8Bit("打开图片");
     QString savePath = QFileDialog::getSaveFileName(this, promt, "", filter);
     if(savePath==NULL) return;
@@ -202,12 +228,18 @@ void MainWindow::on_action_Undo_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     imgWidget->undo();
+    std::string str = num2str(imgWidget->mat->rows)+"x"+num2str(imgWidget->mat->cols);
+    toolbarInfo->updateSize(str);
+    toolbarInfo->updateChannel(num2str(imgWidget->mat->channels()));
 }
 
 void MainWindow::on_action_Redo_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     imgWidget->redo();
+    std::string str = num2str(imgWidget->mat->rows)+"x"+num2str(imgWidget->mat->cols);
+    toolbarInfo->updateSize(str);
+    toolbarInfo->updateChannel(num2str(imgWidget->mat->channels()));
 }
 
 void MainWindow::on_rgb_gray_triggered()
@@ -216,6 +248,7 @@ void MainWindow::on_rgb_gray_triggered()
     Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
     if(!cvtRGB2GRAY(imgWidget->mat,dst))return;
     imgWidget->updateImg(dst);
+    toolbarInfo->updateChannel("1");
 }
 
 
@@ -240,6 +273,7 @@ void MainWindow::on_channel_red_triggered()
     Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
     if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_R))return;
     imgWidget->updateImg(dst);
+    toolbarInfo->updateChannel("1");
 }
 
 void MainWindow::on_channel_green_triggered()
@@ -248,6 +282,7 @@ void MainWindow::on_channel_green_triggered()
     Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
     if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_G))return;
     imgWidget->updateImg(dst);
+    toolbarInfo->updateChannel("1");
 }
 
 void MainWindow::on_channel_blue_triggered()
@@ -256,6 +291,7 @@ void MainWindow::on_channel_blue_triggered()
     Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
     if(!cvtRGB2SC(imgWidget->mat, dst, CHANNEL_B))return;
     imgWidget->updateImg(dst);
+    toolbarInfo->updateChannel("1");
 }
 
 void MainWindow::on_binary_Otsu_triggered()
@@ -369,5 +405,55 @@ void MainWindow::on_mor_reconstruct_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
     BinaryMorphology dialog(this, MORRECON);
+    dialog.exec();
+}
+
+void MainWindow::on_gray_ersion_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+//    grayErosion(src, dst);
+//    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_gray_dilation_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    GrayMorphology dialog(this, GDILATION);
+    dialog.exec();
+}
+
+void MainWindow::on_gray_open_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    GrayMorphology dialog(this, GOPEN);
+    dialog.exec();
+}
+
+void MainWindow::on_gray_close_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    GrayMorphology dialog(this, GCLOSE);
+    dialog.exec();
+}
+
+void MainWindow::on_gmor_reconstruct_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    GrayMorphology dialog(this, GMORRECON);
+    dialog.exec();
+}
+
+void MainWindow::on_gray_watershed_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    GrayMorphology dialog(this, WATERSHED);
     dialog.exec();
 }

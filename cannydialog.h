@@ -5,7 +5,6 @@
 #include <QBoxLayout>
 #include <QDialogButtonBox>
 #include <QSpinBox>
-#include <QSlider>
 #include <QCheckBox>
 #include "imgwidget.h"
 
@@ -25,8 +24,7 @@ private slots:
 private:
     QVBoxLayout* layout;
     QDialogButtonBox* button;
-    QSlider *slider_low, *slider_high;
-    QSpinBox *spin;
+    QSpinBox *spin_low, *spin_high, *spin;
     QCheckBox *check_preview;
     Mat* mat_show;
 };

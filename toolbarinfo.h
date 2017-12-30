@@ -16,6 +16,9 @@ public:
 
     void updateMouseInfo(QString(&info)[6]);
     void updateImageInfo(QString& path, std::string size, std::string channel);
+    void updatePath(QString& path);
+    void updateSize(std::string size);
+    void updateChannel(std::string channel);
 
 private:
     /*widgets*/

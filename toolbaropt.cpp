@@ -39,24 +39,11 @@ ToolbarOpt::ToolbarOpt(const QString &title, QWidget *parent)
     alg_opt.push_back(act_add);
     alg_opt.push_back(act_diff);
     alg_opt.push_back(act_mul);
-
-    rot_type = new QComboBox(this);
-    rot_type->addItem(tr("Bilinear"));
-    rot_type->addItem(tr("Nearest"));
-    rot_type->setVisible(false);
-    rot_angle = new QSlider(Qt::Horizontal, this);
-    rot_angle->setRange(-180, 180);
-    rot_angle->setValue(0);
-    rot_angle->setVisible(false);
-    this->addWidget(rot_type);
-    this->addWidget(rot_angle);
-
 }
 
 ToolbarOpt::~ToolbarOpt()
 {
     delete act_add, act_diff, act_mul;
-    delete rot_type, rot_angle;
 }
 
 
@@ -76,12 +63,6 @@ void ToolbarOpt::setAlgebraOpt()
     for(int i = 0; i < alg_opt.size(); ++i){
         this->addAction(alg_opt[i]);
     }
-}
-
-void ToolbarOpt::setRotateOpt()
-{
-    rot_type->setVisible(true);
-    rot_angle->setVisible(true);
 }
 
 void ToolbarOpt::setCutOpt()

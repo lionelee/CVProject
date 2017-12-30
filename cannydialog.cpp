@@ -6,14 +6,14 @@ CannyDialog::CannyDialog(QWidget *parent)
 {
     layout = new QVBoxLayout(this);
 
-    slider_low = new QSlider(Qt::Horizontal,this);
-    slider_low->setRange(0,255);
-    connect(slider_low,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
-    slider_high = new QSlider(Qt::Horizontal,this);
-    slider_high->setRange(0,255);
-    connect(slider_high,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
-    layout->addWidget(slider_low);
-    layout->addWidget(slider_high);
+    spin_low = new QSpinBox(this);
+    spin_low->setRange(1,255);
+    connect(spin_low,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
+    spin_high = new QSpinBox(this);
+    spin_high->setRange(1,500);
+    connect(spin_high,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
+    layout->addWidget(spin_low);
+    layout->addWidget(spin_high);
 
     spin = new QSpinBox(this);
     spin->setRange(1,9);
@@ -42,27 +42,29 @@ CannyDialog::CannyDialog(QWidget *parent)
 CannyDialog::~CannyDialog()
 {
     delete layout, button;
-    delete slider_low, slider_high;
+    delete spin_low, spin_high;
     delete spin, check_preview;
-    delete mat_show;
 }
 
 void CannyDialog::accept()
 {
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    int low = slider_low->value();
-    int high = slider_high->value();
+    int low = spin_low->value();
+    int high = spin_high->value();
     if(low >high){
         int tmp = low;
         low = high;
         high = tmp;
     }
     CannyDetect(img->mat, mat_show, low, high, spin->value());
+    img->updateImg(mat_show);
     QDialog::accept();
 }
 
 void CannyDialog::reject()
 {
+    ImgWidget* img = ((MainWindow*)parent())->imgWidget;
+    img->showImg(img->mat);
     QDialog::reject();
 }
 
@@ -70,8 +72,8 @@ void CannyDialog::on_value_changed()
 {
     if(!check_preview->isChecked())return;
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    int low = slider_low->value();
-    int high = slider_high->value();
+    int low = spin_low->value();
+    int high = spin_high->value();
     if(low >high){
         int tmp = low;
         low = high;

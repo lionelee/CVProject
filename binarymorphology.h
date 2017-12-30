@@ -9,8 +9,9 @@
 #include <QButtonGroup>
 #include <QRadioButton>
 #include <QDialogButtonBox>
+#include "imgprocess.h"
 
-#define EROSION      0
+#define EROSION     0
 #define DILATION    1
 #define OPEN        2
 #define CLOSE       3
@@ -29,6 +30,10 @@ public:
     BinaryMorphology(QWidget* parent = 0, int _type = EROSION);
     ~BinaryMorphology();
 
+protected:
+    bool getCustomKernel(Mat* kernel);
+    void operation(Mat* kernel);
+
 private slots:
     void accept();
     void reject();
@@ -39,9 +44,10 @@ private:
     QGridLayout* grid;
     QTextEdit* text;
     QSpinBox* spin[16];
+    QSpinBox *anchorx, *anchory;
     QButtonGroup* group;
     QRadioButton *btn_two, *btn_three, *btn_four, *btn_custom;
-    QButtonGroup* button;
+    QDialogButtonBox* button;
     int type;
 };
 

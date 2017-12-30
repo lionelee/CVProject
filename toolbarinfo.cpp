@@ -85,3 +85,19 @@ void ToolbarInfo::updateImageInfo(QString &path, std::string size, std::string c
     label_channel->setText(tr("channel:")+QString::fromStdString(channel));
 }
 
+void ToolbarInfo::updatePath(QString &path)
+{
+    label_path->setText(tr("path:")+path);
+    label_path->setWordWrap(true);
+    label_path->adjustSize();
+}
+
+void ToolbarInfo::updateSize(std::string size)
+{
+    label_size->setText(tr("size:")+QString::fromStdString(size));
+}
+
+void ToolbarInfo::updateChannel(std::string channel)
+{
+    label_channel->setText(tr("channel:")+QString::fromStdString(channel));
+}

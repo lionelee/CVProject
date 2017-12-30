@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <vector>
 #include <algorithm>
+#include <QDebug>
 
 #define PI 3.1415926
 
@@ -524,36 +525,32 @@ bool scaleC1(Mat* src, Mat* dst, int type)
     if(src->channels() != 1)return false;
     int rows = dst->rows, cols = dst->cols;
     double xratio = src->rows / (double)rows, yratio = src->cols / (double)cols;
-    uchar* data_in = src->data;
-    uchar* data_out = dst->data;
+
     for(int i = 0; i < rows; ++i){
         double y_res = i * xratio;
         for(int j = 0; j < cols; ++j){
             double x_res = j * yratio;
+            if(y_res < 0 || y_res >= src->rows || x_res < 0 || x_res >= src->cols)continue;
             if(type == BILINEAR){
                 int y = (int)y_res;
                 double v0 = y_res - y, v1 = 1.0 - v0;
                 int x = (int)x_res;
                 double u0 = x_res - x, u1 = 1.0 - u0;
-                int idx00 = y * cols + x;
-                int idx01 = idx00;
-                if(y < rows-1) idx01 += cols;
-                int idx10 = idx00, idx11 = idx01;
-                if(x < cols-1){
-                    idx10 += 1;
-                    idx11 += 1;
-                }
+                int y1 = y;
+                if(y < src->rows-1)++y1;
+                int x1 = x;
+                if(x1 < src->cols-1)++x1;
 
-                double gray = v1*(u0*data_in[idx10]+u1*data_in[idx00])+
-                              v0*(u0*data_in[idx11]+u1*data_in[idx01]);
-                *data_out = (uchar)round(gray);
-            }else if (type == NEAREST){
-                int y = (uchar)round(y_res), x = (uchar)round(x_res);
-                *data_out = data_in[y * cols + x];
+                double gray = v1*(u0*src->ptr(y)[x1]+u1*src->ptr(y)[x])+
+                             v0*(u0*src->ptr(y1)[x1]+u1*src->ptr(y1)[x]);
+                dst->ptr(i)[j] = (uchar)round(gray);
+
+            }else if(type == NEAREST){
+                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                dst->ptr(i)[j] = src->ptr(y)[x];
             }else{
                 return false;
             }
-            ++data_out;
 
         }
     }
@@ -564,49 +561,41 @@ bool scaleC3(Mat* src, Mat* dst, int type)
 {
     if(src->channels() != 3)return false;
     int rows = dst->rows, cols = dst->cols;
-    int src_size = src->rows * src->cols - 1;
     double xratio = src->rows / (double)rows, yratio = src->cols / (double)cols;
 
-    Vec3b* data_in = (Vec3b*)src->data;
-    Vec3b* data_out = (Vec3b*)dst->data;
     for(int i = 0; i < rows; ++i){
         double y_res = i * xratio;
         for(int j = 0; j < cols; ++j){
             double x_res = j * yratio;
+            if(y_res < 0 || y_res >= src->rows || x_res < 0 || x_res >= src->cols)continue;
             if(type == BILINEAR){
                 int y = (int)y_res;
                 double v0 = y_res - y, v1 = 1.0 - v0;
                 int x = (int)x_res;
                 double u0 = x_res - x, u1 = 1.0 - u0;
-                int idx00 = y * cols + x;
-                idx00 = MIN(idx00, src_size);
-                int idx01 = idx00;
-                if(y < rows-1) idx01 += cols;
-                int idx10 = idx00, idx11 = idx01;
-                if(x < cols-1){
-                    idx10 += 1;
-                    idx11 += 1;
-                }
+                int y1 = y;
+                if(y < src->rows-1)++y1;
+                int x1 = x;
+                if(x1 < src->cols-1)++x1;
 
-                double red = v1*(u0*data_in[idx10][0]+u1*data_in[idx00][0])+
-                              v0*(u0*data_in[idx11][0]+u1*data_in[idx01][0]);
-                double green = v1*(u0*data_in[idx10][1]+u1*data_in[idx00][1])+
-                              v0*(u0*data_in[idx11][1]+u1*data_in[idx01][1]);
-                double blue = v1*(u0*data_in[idx10][2]+u1*data_in[idx00][2])+
-                              v0*(u0*data_in[idx11][2]+u1*data_in[idx01][2]);
-                (*data_out)[0] = (uchar)round(red);
-                (*data_out)[1] = (uchar)round(green);
-                (*data_out)[2] = (uchar)round(blue);
-            }else if (type == NEAREST){
-                int y = (uchar)round(y_res), x = (uchar)round(x_res);
-                int pos = MIN(y*cols+x, src_size);
-                (*data_out)[0] = data_in[pos][0];
-                (*data_out)[1] = data_in[pos][1];
-                (*data_out)[2] = data_in[pos][2];
+                double red = v1*(u0*src->ptr<Vec3b>(y)[x1][0]+u1*src->ptr<Vec3b>(y)[x][0])+
+                             v0*(u0*src->ptr<Vec3b>(y1)[x1][0]+u1*src->ptr<Vec3b>(y1)[x][0]);
+                double green = v1*(u0*src->ptr<Vec3b>(y)[x1][1]+u1*src->ptr<Vec3b>(y)[x][1])+
+                        v0*(u0*src->ptr<Vec3b>(y1)[x1][1]+u1*src->ptr<Vec3b>(y1)[x][1]);
+                double blue = v1*(u0*src->ptr<Vec3b>(y)[x1][2]+u1*src->ptr<Vec3b>(y)[x][2])+
+                        v0*(u0*src->ptr<Vec3b>(y1)[x1][2]+u1*src->ptr<Vec3b>(y1)[x][2]);
+                dst->ptr<Vec3b>(i)[j][0] = (uchar)round(red);
+                dst->ptr<Vec3b>(i)[j][1] = (uchar)round(green);
+                dst->ptr<Vec3b>(i)[j][2] = (uchar)round(blue);
+
+            }else if(type == NEAREST){
+                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                dst->ptr<Vec3b>(i)[j][0] = src->ptr<Vec3b>(y)[x][0];
+                dst->ptr<Vec3b>(i)[j][1] = src->ptr<Vec3b>(y)[x][1];
+                dst->ptr<Vec3b>(i)[j][2] = src->ptr<Vec3b>(y)[x][2];
             }else{
                 return false;
             }
-            ++data_out;
 
         }
     }
@@ -615,40 +604,43 @@ bool scaleC3(Mat* src, Mat* dst, int type)
 
 bool rotateC1(Mat* src, Mat* dst, double angle, int type)
 {
-    if(src->channels() != 1)return false;
+    if(src->channels()!=1)return false;
     int rows = dst->rows, cols = dst->cols;
-    double cosa = cos(angle), sina = sin(angle);
+    double scx = src->cols / 2, scy = src->rows / 2;
+    double centerx = cols / 2, centery = rows / 2;
+    double ca = cos(angle), sa = sin(angle);
 
-    uchar* data_in = src->data;
-    uchar* data_out = dst->data;
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j)
+            dst->ptr(i)[j]=0;
+    }
+
     for(int i = 0; i < rows; ++i){
         for(int j = 0; j < cols; ++j){
-            double x_res = j*cosa+i*sina, y_res = i*cosa-j*sina;
+            double y_res = 0, x_res = 0;
+            y_res = (i-centery)*ca-(j-centerx)*sa+scy;
+            x_res = (i-centery)*sa+(j-centerx)*ca+scx;
+            if(y_res < 0 || y_res >= src->rows || x_res < 0 || x_res >= src->cols)continue;
             if(type == BILINEAR){
                 int y = (int)y_res;
                 double v0 = y_res - y, v1 = 1.0 - v0;
                 int x = (int)x_res;
                 double u0 = x_res - x, u1 = 1.0 - u0;
-                int idx00 = y * cols + x;
-                int idx01 = idx00;
-                if(y < rows-1) idx01 += cols;
-                int idx10 = idx00, idx11 = idx01;
-                if(x < cols-1){
-                    idx10 += 1;
-                    idx11 += 1;
-                }
+                int y1 = y;
+                if(y < src->rows-1)++y1;
+                int x1 = x;
+                if(x1 < src->cols-1)++x1;
 
-                double gray = v1*(u0*data_in[idx10]+u1*data_in[idx00])+
-                              v0*(u0*data_in[idx11]+u1*data_in[idx01]);
-                *data_out = (uchar)round(gray);
-            }else if (type == NEAREST){
-                int y = (uchar)round(y_res), x = (uchar)round(x_res);
-                *data_out = data_in[y * cols + x];
+                double gray = v1*(u0*src->ptr(y)[x1]+u1*src->ptr(y)[x])+
+                             v0*(u0*src->ptr(y1)[x1]+u1*src->ptr(y1)[x]);
+                dst->ptr(i)[j] = (uchar)round(gray);
+
+            }else if(type == NEAREST){
+                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                dst->ptr(i)[j] = src->ptr(y)[x];
             }else{
                 return false;
             }
-            ++data_out;
-
         }
     }
     return true;
@@ -656,50 +648,53 @@ bool rotateC1(Mat* src, Mat* dst, double angle, int type)
 
 bool rotateC3(Mat* src, Mat* dst, double angle, int type)
 {
-//    int rows = dst->rows, cols = dst->cols;
-//    int src_size = src->rows * src->cols - 1;
-//    double cosa = cos(angle), sina = sin(angle);
+    if(src->channels()!=3)return false;
+    int rows = dst->rows, cols = dst->cols;
+    double centerx = cols / 2, centery = rows / 2;
+    double scx = src->cols / 2, scy = src->rows / 2;
+    double ca = cos(angle), sa = sin(angle);
 
-//    Vec3b* data_in = (Vec3b*)src->data;
-//    Vec3b* data_out = (Vec3b*)dst->data;
-//    for(int i = 0; i < rows; ++i){
-//        for(int j = 0; j < cols; ++j){
-//            if(type == BILINEAR){
-//                int y = (int)y_res;
-//                double v0 = y_res - y, v1 = 1.0 - v0;
-//                int x = (int)x_res;
-//                double u0 = x_res - x, u1 = 1.0 - u0;
-//                int idx00 = y * cols + x;
-//                int idx01 = idx00;
-//                if(y < rows-1) idx01 += cols;
-//                int idx10 = idx00, idx11 = idx01;
-//                if(x < cols-1){
-//                    idx10 += 1;
-//                    idx11 += 1;
-//                }
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols*3; ++j)
+            dst->ptr(i)[j]=0;
+    }
 
-//                double red = v1*(u0*data_in[idx10][0]+u1*data_in[idx00][0])+
-//                              v0*(u0*data_in[idx11][0]+u1*data_in[idx01][0]);
-//                double green = v1*(u0*data_in[idx10][1]+u1*data_in[idx00][1])+
-//                              v0*(u0*data_in[idx11][1]+u1*data_in[idx01][1]);
-//                double blue = v1*(u0*data_in[idx10][2]+u1*data_in[idx00][2])+
-//                              v0*(u0*data_in[idx11][2]+u1*data_in[idx01][2]);
-//                (*data_out)[0] = (uchar)round(red);
-//                (*data_out)[1] = (uchar)round(green);
-//                (*data_out)[2] = (uchar)round(blue);
-//            }else if (type == NEAREST){
-//                int y = (uchar)round(y_res), x = (uchar)round(x_res);
-//                int pos = MIN(y*cols+x, src_size);
-//                (*data_out)[0] = data_in[pos][0];
-//                (*data_out)[1] = data_in[pos][1];
-//                (*data_out)[2] = data_in[pos][2];
-//            }else{
-//                return false;
-//            }
-//            ++data_out;
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j){
+            double y_res = 0, x_res = 0;
+            y_res = (i-centery)*ca-(j-centerx)*sa+scy;
+            x_res = (i-centery)*sa+(j-centerx)*ca+scx;
+            if(y_res < 0 || y_res >= src->rows || x_res < 0 || x_res >= src->cols)continue;
+            if(type == BILINEAR){
+                int y = (int)y_res;
+                double v0 = y_res - y, v1 = 1.0 - v0;
+                int x = (int)x_res;
+                double u0 = x_res - x, u1 = 1.0 - u0;
+                int y1 = y;
+                if(y < src->rows-1)++y1;
+                int x1 = x;
+                if(x1 < src->cols-1)++x1;
 
-//        }
-//    }
+                double red = v1*(u0*src->ptr<Vec3b>(y)[x1][0]+u1*src->ptr<Vec3b>(y)[x][0])+
+                             v0*(u0*src->ptr<Vec3b>(y1)[x1][0]+u1*src->ptr<Vec3b>(y1)[x][0]);
+                double green = v1*(u0*src->ptr<Vec3b>(y)[x1][1]+u1*src->ptr<Vec3b>(y)[x][1])+
+                        v0*(u0*src->ptr<Vec3b>(y1)[x1][1]+u1*src->ptr<Vec3b>(y1)[x][1]);
+                double blue = v1*(u0*src->ptr<Vec3b>(y)[x1][2]+u1*src->ptr<Vec3b>(y)[x][2])+
+                        v0*(u0*src->ptr<Vec3b>(y1)[x1][2]+u1*src->ptr<Vec3b>(y1)[x][2]);
+                dst->ptr<Vec3b>(i)[j][0] = (uchar)round(red);
+                dst->ptr<Vec3b>(i)[j][1] = (uchar)round(green);
+                dst->ptr<Vec3b>(i)[j][2] = (uchar)round(blue);
+
+            }else if(type == NEAREST){
+                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                dst->ptr<Vec3b>(i)[j][0] = src->ptr<Vec3b>(y)[x][0];
+                dst->ptr<Vec3b>(i)[j][1] = src->ptr<Vec3b>(y)[x][1];
+                dst->ptr<Vec3b>(i)[j][2] = src->ptr<Vec3b>(y)[x][2];
+            }else{
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -1047,7 +1042,7 @@ bool convolution(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
     int krows = kernel->rows, kcols = kernel->cols;
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     std::vector<uchar*> pix(krows);
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
@@ -1058,7 +1053,8 @@ bool convolution(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
                     sum += pix[m][j+n]*((int)kernel->ptr<char>(m)[n]);
                 }
             }
-            dst->ptr(i+anchory)[j+anchorx] = sum;
+            sum = abs(sum);
+            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(sum,255);
         }
     }
     return true;
@@ -1093,7 +1089,42 @@ bool LaplacianDetect(Mat* src, Mat* dst)
     Mat kernel(3,3,CV_8SC1);
     kernel = (Mat_<char>(3,3)<<0,-1,0,-1,4,-1,0,-1,0);
     src->copyTo(*dst);
+
     return convolution(src, dst, &kernel, 1, 1);
+}
+
+//void trace(Mat* src, int low){
+//    for(int i = 1; i < src->rows-1; ++i){
+//        for(int j = 1; j < src->cols-1; ++j){
+//            if(src->ptr(i)[j] > low){
+//                if(src->ptr(i-1)[j-1]==255 || src->ptr(i-1)[j]==255 || src->ptr(i-1)[j+1]==255 ||
+//                   src->ptr(i)[j-1]==255 || src->ptr(i)[j+1]==255 || src->ptr(i+1)[j-1]==255 ||
+//                   src->ptr(i+1)[j]==255 || src->ptr(i+1)[j+1]==255)
+//                {
+//                    src->ptr(i)[j] = 255;
+//                   trace(src, low);
+//                }else{
+//                    src->ptr(i)[j] = 0;
+//                }
+//            }
+//        }
+//    }
+//}
+
+const int xdir[8] = { -1, 0, 1, 1, 1, 0, -1, -1 };
+const int ydir[8] = { -1, -1, -1, 0, 1, 1, 1, 0 };
+
+void trace(Mat* tmp, Mat* dst, int x, int y, int low, bool** flag) {
+    int xx, yy;
+    for (int i = 0; i < 8; i++) {
+        xx = x + xdir[i];
+        yy = y + ydir[i];
+        if (flag[yy][xx] && tmp->ptr<double>(yy)[xx] >= low
+            && dst->ptr(yy)[xx] == 0) {
+            dst->ptr(yy)[xx] = 255;
+            trace(tmp, dst, xx, yy, low, flag);
+        }
+    }
 }
 
 bool CannyDetect(Mat* src, Mat* dst, int low, int high, int size)
@@ -1101,8 +1132,85 @@ bool CannyDetect(Mat* src, Mat* dst, int low, int high, int size)
     if(src->channels() != 1)return false;
     Mat kernel(size, size, CV_64FC1);
     calGaussianFilter(&kernel, 0.5);
-    src->copyTo(*dst);
-    if(!convolution(src, dst, &kernel, size/2, size/2))return false;
+    int rows = src->rows, cols = src->cols;
+    GaussianFilter(src, dst, &kernel, size/2, size/2);
+
+    //calculate gratitude
+    double** direction = new double*[(rows-2)];
+    for(int i = 0; i < rows-2; ++i){
+        direction[i] = new double[cols-2];
+        for(int j = 0; j < cols - 2; ++j)
+            direction[i][j] = 0;
+    }
+
+    std::vector<uchar*> pix(3);
+    Mat tmp(rows, cols, CV_64FC1);
+    for(int i = 0; i < rows-2; ++i){
+        for(int k = 0; k < 3; ++k) pix[k] = dst->ptr(i+k);
+        for(int j = 0; j < cols-2; ++j){
+            double gradY = (pix[0][j+2]+2*pix[1][j+2]+pix[2][j+2])-(pix[0][j]+2*pix[1][j]+pix[2][j]);
+            double gradX = (pix[2][j]+2*pix[2][j+1]+pix[2][j+2])-(pix[0][j]+2*pix[0][j+1]+pix[0][j+2]);
+            tmp.ptr<double>(i+1)[j+1] = sqrt(gradX*gradX+gradY*gradY);
+            if(gradX==0) gradX=0.00000000000000001;
+            direction[i][j]=atan(gradY/gradX)*57.2957;
+        }
+    }
+
+    //non-maxium supression
+    bool** flag = new bool*[rows];
+    for(int i = 0; i < rows; ++i){
+        flag[i] = new bool[cols];
+        for(int j = 0; j < cols; ++j)
+            flag[i][j] = false;
+    }
+    double h1 = 0.0, h2 = 0.0;
+    for(int i = 0; i < rows-2; ++i){
+        for(int j = 0; j < rows-2; ++j){
+            double theta = direction[i][j];
+            if((theta > -91 && theta <= -67.5) || (theta > 67.5 && theta < 91)){
+                h1 = tmp.ptr<double>(i)[j+1];
+                h2 = tmp.ptr<double>(i+2)[j+1];
+            }else if(theta > -67.5 && theta <= -22.5){
+                h1 = tmp.ptr<double>(i)[j+2];
+                h2 = tmp.ptr<double>(i+2)[j];
+            }else if(theta > -22.5  && theta <= 22.5){
+                h1 = tmp.ptr<double>(i+1)[j];
+                h2 = tmp.ptr<double>(i+1)[j+2];
+            }else if(theta > 22.5 && theta <= 67.5){
+                h1 = tmp.ptr<double>(i)[j];
+                h2 = tmp.ptr<double>(i+2)[j+2];
+            }else continue;
+            if(tmp.ptr<double>(i+1)[j+1] < h1 || tmp.ptr<double>(i+1)[j+1] < h2){
+                tmp.ptr<double>(i+1)[j+1] = 0;
+            }else{
+                flag[i+1][j+1] = true;
+            }
+        }
+    }
+
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j)
+            dst->ptr(i)[j] = 0;
+    }
+
+    //double threshold detecting
+    for (int i = 0; i < rows; i++) {
+        double* data_in = tmp.ptr<double>(i);
+        uchar* data_out = dst->ptr(i);
+        for (int j = 0; j < cols; j++) {
+            if(flag[i][j] && data_in[j] >= high && data_out[j]==0){
+                data_out[j] = 255;
+                trace(&tmp, dst, j, i, low, flag);
+            }
+        }
+    }
+
+    for(int i = 0; i < cols-2; ++i)
+        delete []direction[i];
+    delete []direction;
+    for(int i = 0; i < cols; ++i)
+        delete []flag[i];
+    delete []flag;
     return true;
 }
 
@@ -1128,7 +1236,7 @@ bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
     int krows = kernel->rows, kcols = kernel->cols;
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     std::vector<uchar*> pix(krows);
     reflectKernel(kernel);
     for(int i = 0; i < rangey; ++i){
@@ -1153,7 +1261,7 @@ bool erosion(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
     int krows = kernel->rows, kcols = kernel->cols;
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     std::vector<uchar*> pix(krows);
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
@@ -1235,6 +1343,57 @@ bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
     Mat tmp(src->rows, src->cols, CV_8UC1);
     hitOrMiss(src, &tmp, kernel, anchorx, anchory);
     matOr(src, &tmp, dst);
+    return true;
+}
+
+
+//gray-level morphologic transformation
+bool grayDilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    int krows = kernel->rows, kcols = kernel->cols;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
+    std::vector<uchar*> pix(krows);
+    reflectKernel(kernel);
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    if(kernel->ptr(m)[n] & pix[m][j+n]){
+                        dst->ptr(i+anchory)[j+anchorx] = 255;
+                        goto nextloop;
+                    }
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = 0;
+            nextloop:;
+        }
+    }
+    return true;
+}
+
+bool grayErosion(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    int krows = kernel->rows, kcols = kernel->cols;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
+    std::vector<uchar*> pix(krows);
+    for(int i = 0; i < rangey; ++i){
+        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
+        for(int j = 0; j < rangex; ++j){
+            for(int m = 0; m < krows; ++m){
+                for(int n = 0; n < kcols; ++n){
+                    if(!(kernel->ptr(m)[n] & pix[m][j+n])){
+                        dst->ptr(i+anchory)[j+anchorx] = 0;
+                        goto nextloop;
+                    }
+                }
+            }
+            dst->ptr(i+anchory)[j+anchorx] = 255;
+            nextloop:;
+        }
+    }
     return true;
 }
 

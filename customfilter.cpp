@@ -1,10 +1,10 @@
-#include "graymorphology.h"
+#include "customfilter.h"
 #include "mainwindow.h"
 #include "imgwidget.h"
 #include <QMessageBox>
 
-GrayMorphology::GrayMorphology(QWidget *parent, int _type)
-    :QDialog(parent),type(_type)
+CustomFilter::CustomFilter(QWidget *parent)
+    :QDialog(parent)
 {
     layout = new QVBoxLayout(this);
     grid = new QGridLayout();
@@ -54,7 +54,7 @@ GrayMorphology::GrayMorphology(QWidget *parent, int _type)
     this->setLayout(layout);
 }
 
-GrayMorphology::~GrayMorphology()
+CustomFilter::~CustomFilter()
 {
     delete layout, grid, group, button;
     delete btn_two, btn_three, btn_four, btn_custom;
@@ -62,7 +62,7 @@ GrayMorphology::~GrayMorphology()
     delete text, anchorx, anchory;
 }
 
-bool GrayMorphology::getCustomKernel(Mat *kernel)
+bool CustomFilter::getCustomKernel(Mat *kernel)
 {
     QString qstr = text->toPlainText();
     if(qstr==NULL || qstr==""){
@@ -100,35 +100,7 @@ bool GrayMorphology::getCustomKernel(Mat *kernel)
     return true;
 }
 
-void GrayMorphology::operation(Mat* kernel)
-{
-    ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    Mat* src = img->mat;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    int ax = anchorx->value(), ay = anchory->value();
-    if(ax >= kernel->cols || ay >= kernel->rows) return;
-    switch (type) {
-    case GEROSION:
-        grayErosion(src, dst, kernel, ax, ay);
-        break;
-    case GDILATION:
-        grayDilation(src, dst, kernel, ax, ay);
-        break;
-    case GOPEN:
-        grayErosion(src, dst, kernel, ax, ay);
-        grayDilation(src, dst, kernel, ax, ay);
-        break;
-    case GCLOSE:
-        grayDilation(src, dst, kernel, ax, ay);
-        grayErosion(src, dst, kernel, ax, ay);
-        break;
-    default: return;
-    }
-    img->updateImg(dst);
-}
-
-
-void GrayMorphology::accept()
+void CustomFilter::accept()
 {
     int id = group->checkedId();
     Mat kernel;
@@ -157,16 +129,25 @@ void GrayMorphology::accept()
         QDialog::accept();
         return;
     }
+
+    ImgWidget* img = ((MainWindow*)parent())->imgWidget;
+    Mat* src = img->mat;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    int ax = anchorx->value(), ay = anchory->value();
+    if(ax >= kernel.cols || ay >= kernel.rows) return;
+    meanFilter(src, dst, &kernel, ax, ay);
+    img->updateImg(dst);
     QDialog::accept();
-    operation(&kernel);
 }
 
-void GrayMorphology::reject()
+void CustomFilter::reject()
 {
+    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
+    img->showImg(img->mat);
     QDialog::reject();
 }
 
-void GrayMorphology::on_btn_clicked()
+void CustomFilter::on_btn_clicked()
 {
     int id = group->checkedId();
     switch (id) {

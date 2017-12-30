@@ -126,7 +126,7 @@ void ToolbarTool::on_btn_alg_clicked()
 
 void ToolbarTool::on_btn_rot_clicked()
 {
-    ((MainWindow*)parent())->toolbarOpt->setRotateOpt();
+    ((MainWindow*)parent())->rotate();
 }
 
 void ToolbarTool::on_btn_cut_clicked()
@@ -165,5 +165,5 @@ void ToolbarTool::on_filter_normal_triggered()
 
 void ToolbarTool::on_filter_custom_triggered()
 {
-
+    ((MainWindow*)parent())->customFilter();
 }

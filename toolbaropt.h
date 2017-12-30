@@ -3,8 +3,6 @@
 
 #include <QToolBar>
 #include <QAction>
-#include <QComboBox>
-#include <QSlider>
 #include <vector>
 #include "imgprocess.h"
 
@@ -23,7 +21,6 @@ public:
 
     void setCursorOpt();
     void setAlgebraOpt();
-    void setRotateOpt();
     void setCutOpt();
 
 private slots:
@@ -35,8 +32,6 @@ private:
     int idx = 0;
     std::vector<QAction*> cur_opt,alg_opt;
     QAction *act_add, *act_diff, *act_mul;
-    QComboBox *rot_type;
-    QSlider *rot_angle;
 
     void removeLast();
     bool openFile(Mat* dst);

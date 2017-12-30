@@ -28,10 +28,13 @@ public:
     QScrollArea* scrollArea = NULL;
     ImgWidget* imgWidget = NULL;
     ToolbarOpt  *toolbarOpt;
+    ToolbarInfo *toolbarInfo;
 
     void updateMouseInfo(QString(&info)[6]);
+    void rotate();
     void adjustContrast();
     void smoothFilter();
+    void customFilter();
     void addNoise();
 
 protected:
@@ -73,8 +76,14 @@ private slots:
     void on_ske_reconstruct_triggered();
     void on_mor_reconstruct_triggered();
 
+    void on_gray_ersion_triggered();
+    void on_gray_dilation_triggered();
+    void on_gray_open_triggered();
+    void on_gray_close_triggered();
+    void on_gmor_reconstruct_triggered();
+    void on_gray_watershed_triggered();
+
 private:
-    ToolbarInfo *toolbarInfo;
     ToolbarTool *toolbarTool;
     QLabel *label;
     QString filePath;

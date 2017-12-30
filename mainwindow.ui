@@ -145,8 +145,8 @@
     </widget>
     <addaction name="menu_10"/>
     <addaction name="separator"/>
-    <addaction name="action_26"/>
-    <addaction name="action_27"/>
+    <addaction name="gmor_reconstruct"/>
+    <addaction name="gray_watershed"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -420,12 +420,12 @@
     <string>闭操作</string>
    </property>
   </action>
-  <action name="action_26">
+  <action name="gmor_reconstruct">
    <property name="text">
     <string>形态学重构</string>
    </property>
   </action>
-  <action name="action_27">
+  <action name="gray_watershed">
    <property name="text">
     <string>分水岭算法</string>
    </property>

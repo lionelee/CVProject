@@ -89,7 +89,6 @@ FilterDialog::~FilterDialog()
     delete layout;
     delete group, button;
     delete btn_mean, btn_median, btn_Gussian;
-    delete mat_show;
 }
 
 void FilterDialog::accept()

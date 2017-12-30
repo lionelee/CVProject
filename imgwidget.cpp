@@ -146,10 +146,6 @@ void ImgWidget::setScaleType(int type)
     sca_type = type;
 }
 
-void ImgWidget::setRotateType(int type)
-{
-    rot_type = type;
-}
 
 void ImgWidget::setCut()
 {
@@ -233,10 +229,10 @@ void ImgWidget::wheelEvent(QWheelEvent *event)
             }
         } else if(delta < 0){    //down
             if(mat->channels()==1){
-                mat_scale = new Mat(mat->rows/1.1, mat->cols/1.1, CV_8UC1);
+                mat_scale = new Mat(mat->rows*0.9, mat->cols*0.9, CV_8UC1);
                 scaleC1(mat, mat_scale, sca_type);
             }else if(mat->channels()==3){
-                mat_scale = new Mat(mat->rows/1.1, mat->cols/1.1, CV_8UC3);
+                mat_scale = new Mat(mat->rows*0.9, mat->cols*0.9, CV_8UC3);
                 scaleC3(mat, mat_scale, sca_type);
             }
         }else{
@@ -244,6 +240,8 @@ void ImgWidget::wheelEvent(QWheelEvent *event)
         }
         updateImg(mat_scale);
         event->accept();
+        std::string str = num2str(mat->rows)+"x"+num2str(mat->cols);
+        w->toolbarInfo->updateSize(str);
         return;
 
     }
