@@ -220,6 +220,56 @@ bool adjusthsl(Mat *src, Mat* dst, int hue, int sat, int lig)
     return true;
 }
 
+bool adjustColorlevel(Mat* src, Mat* dst, int channel, int ib, double ig, int iw, int ob, int ow)
+{
+    if(src->channels() != 3 )return false;
+    src->copyTo(*dst);
+    double diff = MAX(iw-ib, 1), coeffi = 1 / ig, coeffo = (ow-ob)/(double)255;
+    for(int i = 0; i < src->rows; ++i){
+        Vec3b* data_in = src->ptr<Vec3b>(i);
+        Vec3b* data_out = dst->ptr<Vec3b>(i);
+        for(int j = 0; j < src->cols; ++j){
+            int idiff = 0;
+            double tmp = 0;
+            switch (channel) {
+            case CHANNEL_RGB:
+            case CHANNEL_R:
+                idiff = data_in[j][0]-ib;
+                if(idiff <= 0)data_out[j][0] = ob;
+                else{
+                    tmp = 255*pow(idiff/(double)diff, coeffi);
+                    tmp = MIN(tmp, 255);
+                    tmp = tmp*coeffo+ob;
+                    data_out[j][0] = (uchar)MIN(round(tmp), 255);
+                }
+                if(channel!=CHANNEL_RGB)break;
+            case CHANNEL_G:
+                idiff = data_in[j][1]-ib;
+                if(idiff <= 0)data_out[j][1] = ob;
+                else{
+                    tmp = 255*pow(idiff/(double)diff, coeffi);
+                    tmp = MIN(tmp, 255);
+                    tmp = tmp*coeffo+ob;
+                    data_out[j][1] = (uchar)MIN(round(tmp), 255);
+                }
+                if(channel!=CHANNEL_RGB)break;
+            case CHANNEL_B:
+                idiff = data_in[j][2]-ib;
+                if(idiff <= 0)data_out[j][2] = ob;
+                else{
+                    tmp = 255*pow(idiff/(double)diff, coeffi);
+                    tmp = MIN(tmp, 255);
+                    tmp = tmp*coeffo+ob;
+                    data_out[j][2] = (uchar)MIN(round(tmp), 255);
+                }
+                if(channel!=CHANNEL_RGB)break;
+            default: break;
+            }
+        }
+    }
+    return true;
+}
+
 
 //binarization of gray img
 bool cpMatGray(Mat *src, Mat *dst)
@@ -921,26 +971,26 @@ bool meanFilter(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
     src->copyTo(*dst);
-    int krows = kernel->rows, kcols = src->cols;
+    int krows = kernel->rows, kcols = kernel->cols;
     int ksum = 0;
-    for(int m = 0; m < krows; ++m){
-        for(int n = 0; n < kcols; ++n){
-            ksum += kernel->ptr(m)[n];
+    for(int i= 0; i < krows; ++i){
+        for(int j = 0; j < kcols; ++j){
+            ksum += kernel->ptr<char>(i)[j];
         }
     }
     std::vector<uchar*> pix(krows);
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
         for(int j = 0; j < rangex; ++j){
             int sum = 0;
             for(int m = 0; m < krows; ++m){
                 for(int n = 0; n < kcols; ++n){
-                    sum += pix[m][j+n]*kernel->ptr(m)[n];
+                    sum += pix[m][j+n]*kernel->ptr<char>(m)[n];
                 }
             }
-            double tmp = sum/(double)ksum;
-            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(round(tmp),255);
+            if(ksum!=0) sum = round(sum / ksum);
+            dst->ptr(i+anchory)[j+anchorx] = (uchar)MIN(sum,255);
         }
     }
     return true;
@@ -952,7 +1002,7 @@ bool meanFilter(Mat *src, Mat *dst, int rows, int cols, int anchorx, int anchory
     src->copyTo(*dst);
     int krows = rows, kcols = cols, ksize = krows*kcols;
     std::vector<uchar*> pix(krows);
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
         for(int j = 0; j < rangex; ++j){
@@ -975,7 +1025,7 @@ bool medianFilter(Mat* src, Mat* dst, int rows, int cols, int anchorx, int ancho
     src->copyTo(*dst);
     int krows = rows, kcols = cols, ksize = krows*kcols;
     std::vector<uchar*> pix(krows);
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
         for(int j = 0; j < rangex; ++j){
@@ -1021,7 +1071,7 @@ bool GaussianFilter(Mat* src, Mat* dst, Mat* kernel,int anchorx, int anchory)
     }
     src->copyTo(*dst);
     std::vector<uchar*> pix(krows);
-    int rangex = src->cols-kcols, rangey = src->rows-krows;
+    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     for(int i = 0; i < rangey; ++i){
         for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
         for(int j = 0; j < rangex; ++j){
@@ -1215,6 +1265,94 @@ bool CannyDetect(Mat* src, Mat* dst, int low, int high, int size)
 }
 
 
+//Hough transformation
+struct line{
+    int theta;
+    int r;
+};
+
+void HoughLine(Mat* src, Mat* dst, int threshold)
+{
+    double sin_value[360];
+    double cos_value[360];
+    for(int i=0; i < 360; i++){
+        sin_value[i] = sin(i*PI/180);
+        cos_value[i] = cos(i*PI/180);
+    }
+    src->copyTo(*dst);
+    blur(*dst, *dst, Size(3,3) );
+    Canny(*dst, *dst, 50, 200);
+    std::vector<struct line> lines;
+    int diagonal = floor(sqrt(src->rows*src->rows + src->cols*src->cols));
+    std::vector<std::vector<int>>p(360,std::vector<int>(diagonal));
+    for(int i = 0; i < 360; ++i){
+        for(int j = 0; j < diagonal; ++j)
+            p[i][j] = 0;
+    }
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            if(dst->ptr(i)[j] > 0){
+                for(int a = 0; a < 360; ++a){
+                    int r = round(j*sin_value[a] + i*cos_value[a]);
+                    if(r < 0) continue;
+                    ++p[a][r];
+                }
+            }
+        }
+    }
+    for( int theta = 0; theta < 360; ++theta){
+        for( int r = 0; r < diagonal; ++r){
+            int thetaLeft = MAX(0,theta-1);
+            int thetaRight = MIN(359,theta+1);
+            int rLeft = MAX(0,r-1);
+            int rRight = MIN(diagonal-1,r+1);
+            int tmp = p[theta][r];
+            if( tmp > threshold
+                && tmp > p[thetaLeft][rLeft] && tmp > p[thetaLeft][r] && tmp > p[thetaLeft][rRight]
+                && tmp > p[theta][rLeft] && tmp > p[theta][rRight]
+                && tmp > p[thetaRight][rLeft] && tmp > p[thetaRight][r] && tmp > p[thetaRight][rRight])
+            {
+                struct line newline;
+                newline.theta = theta;
+                newline.r = r;
+                lines.push_back(newline);
+            }
+        }
+    }
+    src->copyTo(*dst);
+    for(int i = 0;i < lines.size();i++) {
+        std::vector<Point> points;
+        int theta = lines[i].theta;
+        int r = lines[i].r;
+
+        double ct = cos_value[theta];
+        double st = sin_value[theta];
+
+        int y = int(r/st);
+        if(y >= 0 && y < src->rows){
+            Point point(0, y);
+            points.push_back(point);
+        }
+        y = int((r-ct*(src->cols-1))/st);
+        if(y >= 0 && y < src->rows){
+            Point point(src->cols-1, y);
+            points.push_back(point);
+        }
+        int x = int(r/ct);
+        if(x >= 0 && x < src->cols){
+            Point point(x, 0);
+            points.push_back(point);
+        }
+        x = int((r-st*(src->rows-1))/ct);
+        if(x >= 0 && x < src->cols){
+            Point point(x, src->rows-1);
+            points.push_back(point);
+        }
+        if(points.size()<2)continue;
+        cv::line(*dst, points[0], points[1], Scalar(255,255,255), 1, CV_AA);
+    }
+}
+
 
 //binary morphologic transformation
 void reflectKernel(Mat* kernel)
@@ -1235,6 +1373,7 @@ void reflectKernel(Mat* kernel)
 bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
+    src->copyTo(*dst);
     int krows = kernel->rows, kcols = kernel->cols;
     int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     std::vector<uchar*> pix(krows);
@@ -1244,7 +1383,7 @@ bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
         for(int j = 0; j < rangex; ++j){
             for(int m = 0; m < krows; ++m){
                 for(int n = 0; n < kcols; ++n){
-                    if(kernel->ptr(m)[n] & pix[m][j+n]){
+                    if(kernel->ptr<char>(m)[n]>=1 && pix[m][j+n]==255){
                         dst->ptr(i+anchory)[j+anchorx] = 255;
                         goto nextloop;
                     }
@@ -1260,6 +1399,7 @@ bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
 bool erosion(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
 {
     if(src->channels() != 1)return false;
+    src->copyTo(*dst);
     int krows = kernel->rows, kcols = kernel->cols;
     int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
     std::vector<uchar*> pix(krows);
@@ -1268,7 +1408,7 @@ bool erosion(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
         for(int j = 0; j < rangex; ++j){
             for(int m = 0; m < krows; ++m){
                 for(int n = 0; n < kcols; ++n){
-                    if(!(kernel->ptr(m)[n] & pix[m][j+n])){
+                    if(kernel->ptr<char>(m)[n]>=1 && pix[m][j+n]!=255){
                         dst->ptr(i+anchory)[j+anchorx] = 0;
                         goto nextloop;
                     }
@@ -1305,95 +1445,441 @@ void matOr(Mat* src1, Mat* src2,Mat* dst)
     }
 }
 
-void matNot(Mat* src, Mat* dst)
+void matOr(Mat* src, Mat* dst)
 {
     for(int i = 0; i < src->rows; ++i){
         uchar* data_in = src->ptr(i);
         uchar* data_out = dst->ptr(i);
         for(int j = 0; j < src->cols; ++j){
-            data_out[j] = 255 - data_in[j];
+            data_out[j] = data_in[j] | data_out[j];
         }
     }
 }
 
-void hitOrMiss(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+
+void matNot(Mat* src)
+{
+    for(int i = 0; i < src->rows; ++i){
+        uchar* data = src->ptr(i);
+        for(int j = 0; j < src->cols; ++j){
+            data[j] = 255 - data[j];
+        }
+    }
+}
+
+void matNot(Mat *src, Mat *dst)
+{
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            dst->ptr(i)[j] = 255 - src->ptr(i)[j];
+        }
+    }
+}
+
+void hitMiss(Mat* src, Mat* dst, Mat* k1, Mat* k2, int anchorx, int anchory)
 {
     Mat con(src->rows, src->cols, CV_8UC1);
+//    src->copyTo(*dst);
+    matNot(src, &con);
     Mat tmp1(src->rows, src->cols, CV_8UC1);
     Mat tmp2(src->rows, src->cols, CV_8UC1);
-    matNot(src, &con);
-    erosion(src, &tmp1, kernel, anchorx, anchory);
-    erosion(&con, &tmp2, kernel, anchorx, anchory);
+    erosion(src, &tmp1, k1, anchorx, anchory);
+    erosion(&con, &tmp2, k2, anchorx, anchory);
     matAnd(&tmp1, &tmp2, dst);
 }
 
-bool thinning(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+void getThinningSE(int num, Mat* se){
+    for(int i = 0; i < 3; ++i){
+        for(int j = 0; j < 3; ++j){
+            se->ptr(i)[j] = 0;
+        }
+    }
+    switch(num){
+    case 0:
+        se->ptr(2)[0] = 1;
+        se->ptr(2)[1] = 1;
+        se->ptr(2)[2] = 1;
+        se->ptr(1)[1] = 1;
+        break;
+    case 1:
+        se->ptr(1)[1] = 1;
+        se->ptr(1)[0] = 1;
+        se->ptr(2)[0] = 1;
+        se->ptr(2)[1] = 1;
+        break;
+    case 2:
+        se->ptr(1)[1] = 1;
+        se->ptr(1)[0] = 1;
+        se->ptr(2)[0] = 1;
+        se->ptr(0)[0] = 1;
+        break;
+    case 3:
+        se->ptr(1)[1] = 1;
+        se->ptr(0)[0] = 1;
+        se->ptr(0)[1] = 1;
+        se->ptr(1)[0] = 1;
+        break;
+    case 4:
+        se->ptr(1)[1] = 1;
+        se->ptr(0)[0] = 1;
+        se->ptr(0)[1] = 1;
+        se->ptr(0)[2] = 1;
+        break;
+    case 5:
+        se->ptr(0)[1] = 1;
+        se->ptr(0)[2] = 1;
+        se->ptr(1)[1] = 1;
+        se->ptr(1)[2] = 1;
+        break;
+    case 6:
+        se->ptr(1)[1] = 1;
+        se->ptr(0)[2] = 1;
+        se->ptr(1)[2] = 1;
+        se->ptr(2)[2] = 1;
+        break;
+    case 7:
+        se->ptr(1)[1] = 1;
+        se->ptr(1)[2] = 1;
+        se->ptr(2)[1] = 1;
+        se->ptr(2)[2] = 1;
+        break;
+    }
+}
+
+void getThinningConSE(int num, Mat* se){
+    for(int i = 0; i < 3; ++i){
+        for(int j = 0; j < 3; ++j){
+            se->ptr(i)[j] = 0;
+        }
+    }
+    switch(num){
+    case 0:
+        se->ptr(0)[1] = 1;
+        se->ptr(0)[2] = 1;
+        se->ptr(0)[0] = 1;
+        break;
+    case 1:
+        se->ptr(0)[1] = 1;
+        se->ptr(0)[2] = 1;
+        se->ptr(1)[2] = 1;
+        break;
+    case 2:
+        se->ptr(0)[2] = 1;
+        se->ptr(1)[2] = 1;
+        se->ptr(2)[2] = 1;
+        break;
+    case 3:
+        se->ptr(1)[2] = 1;
+        se->ptr(2)[1] = 1;
+        se->ptr(2)[2] = 1;
+        break;
+    case 4:
+        se->ptr(2)[0] = 1;
+        se->ptr(2)[1] = 1;
+        se->ptr(2)[2] = 1;
+        break;
+    case 5:
+        se->ptr(1)[0] = 1;
+        se->ptr(2)[0] = 1;
+        se->ptr(2)[1] = 1;
+        break;
+    case 6:
+        se->ptr(0)[0] = 1;
+        se->ptr(1)[0] = 1;
+        se->ptr(2)[0] = 1;
+        break;
+    case 7:
+        se->ptr(0)[0] = 1;
+        se->ptr(0)[1] = 1;
+        se->ptr(1)[0] = 1;
+        break;
+    }
+}
+
+bool isEqual(Mat* src, Mat* dst)
 {
-    if(src->channels() != 1)return false;
-    Mat tmp(src->rows, src->cols, CV_8UC1);
-    hitOrMiss(src, &tmp, kernel, anchorx, anchory);
-    matNot(&tmp, &tmp);
-    matAnd(src, &tmp, dst);
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            if(src->ptr(i)[j]!=dst->ptr(i)[j]){
+                return false;
+            }
+        }
+    }
     return true;
 }
 
-bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+int thintimes = 0;
+
+bool thinning(Mat* src, Mat* dst)
 {
     if(src->channels() != 1)return false;
     Mat tmp(src->rows, src->cols, CV_8UC1);
-    hitOrMiss(src, &tmp, kernel, anchorx, anchory);
-    matOr(src, &tmp, dst);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    thintimes = 0;
+    int i = 0;
+//    while(!isEqual(&tmp, &tmp2)){
+    while(i<50){
+        tmp.copyTo(tmp2);
+        for(int i = 0; i < 8; ++i){
+            tmp.copyTo(tmp1);
+            Mat* k1 = new Mat(3,3, CV_8UC1);
+            Mat* k2 = new Mat(3,3, CV_8UC1);
+            getThinningSE(i, k1);
+            getThinningConSE(i, k2);
+            hitMiss(&tmp1, &tmp, k1, k2, 1, 1);
+            matNot(&tmp);
+            matAnd(&tmp1, &tmp, &tmp);
+            delete k1, k2;
+//            diffMatC1(&tmp, &tmp1);
+        }
+        ++i;
+    }
+    thintimes = i;
+    tmp.copyTo(*dst);
     return true;
 }
 
+bool thickening(Mat* src, Mat* dst)
+{
+    if(src->channels() != 1)return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+//    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    while(thintimes > 0){
+        for(int i = 0; i < 8; ++i){
+            tmp.copyTo(tmp1);
+            Mat* k1 = new Mat(3,3, CV_8UC1);
+            Mat* k2 = new Mat(3,3, CV_8UC1);
+            getThinningSE(i, k1);
+            getThinningConSE(i, k2);
+            hitMiss(&tmp1, &tmp, k1, k2, 1, 1);
+            matOr(&tmp1, &tmp);
+            delete k1, k2;
+        }
+        --thintimes;
+    }
+    tmp.copyTo(*dst);
+    return true;
+}
+
+std::vector<Mat> skeset;
+
+bool skeleton(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
+{
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            dst->ptr(i)[j] = 0;
+        }
+    }
+    skeset.clear();
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp1);
+    int i  = 0;
+    do{
+        Mat tmp2(src->rows, src->cols, CV_8UC1);
+        erosion(&tmp1, &tmp2, kernel, anchorx, anchory);
+        tmp2.copyTo(tmp1);
+        erosion(&tmp1, &tmp2, kernel, anchorx, anchory);
+        dilation(&tmp2, &tmp, kernel, anchorx, anchory);
+        matNot(&tmp);
+        matAnd(&tmp1, &tmp, &tmp2);
+        skeset.push_back(tmp2);
+        matOr(&tmp2, dst);
+        ++i;
+    }while(countNonZero(skeset.back())>0);
+    return true;
+}
+
+bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(skeset.size()==0)return false;
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            dst->ptr(i)[j] = 0;
+        }
+    }
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    int i = skeset.size()-1;
+    skeset[i].copyTo(tmp1);
+    while(i > 0){
+        dilation(&tmp1, &tmp, kernel, anchorx, anchory);
+        --i;
+        matOr(&tmp, &skeset[i], &tmp1);
+    }
+    dilation(&tmp1,dst,kernel, anchorx, anchory);
+    skeset.clear();
+    return true;
+}
+
+
+bool dilationRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    Mat tmp1(mark->rows, mark->cols, CV_8UC1);
+    mark->copyTo(tmp1);
+    Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    while (!isEqual(&tmp1, &tmp2)) {
+        tmp1.copyTo(tmp2);
+        dilation(&tmp1, &tmp1, kernel, anchorx, anchory);
+        matAnd(&tmp1, ground, dst);
+        dst->copyTo(tmp1);
+    }
+    tmp1.copyTo(*dst);
+    return true;
+}
+
+bool erosionRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    Mat tmp1(mark->rows, mark->cols, CV_8UC1);
+    mark->copyTo(tmp1);
+    Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    while (!isEqual(&tmp1, &tmp2)) {
+        tmp1.copyTo(tmp2);
+        erosion(&tmp1, &tmp1, kernel, anchorx, anchory);
+        matOr(&tmp1, ground, dst);
+        dst->copyTo(tmp1);
+    }
+    tmp1.copyTo(*dst);
+    return true;
+}
+
+bool openRebuild(Mat *src, Mat *dst, Mat *kernel, int n, int anchorx, int anchory)
+{
+    if(src->channels()!= 1) return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    for(int i = 0; i < n; ++i){
+        erosion(&tmp, &tmp, kernel, anchorx, anchory);
+    }
+    return dilationRebuild(&tmp, src, dst, kernel, anchorx, anchory);
+}
+
+bool closeRebuild(Mat *src, Mat *dst, Mat *kernel, int n, int anchorx, int anchory)
+{
+    if(src->channels()!= 1) return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    for(int i = 0; i < n; ++i){
+        dilation(&tmp, &tmp, kernel, anchorx, anchory);
+    }
+    return erosionRebuild(&tmp, src, dst, kernel, anchorx, anchory);
+}
 
 //gray-level morphologic transformation
-bool grayDilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+bool grayDilation(Mat* src, Mat* dst)
 {
     if(src->channels() != 1)return false;
-    int krows = kernel->rows, kcols = kernel->cols;
-    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
-    std::vector<uchar*> pix(krows);
-    reflectKernel(kernel);
-    for(int i = 0; i < rangey; ++i){
-        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
-        for(int j = 0; j < rangex; ++j){
-            for(int m = 0; m < krows; ++m){
-                for(int n = 0; n < kcols; ++n){
-                    if(kernel->ptr(m)[n] & pix[m][j+n]){
-                        dst->ptr(i+anchory)[j+anchorx] = 255;
-                        goto nextloop;
-                    }
+    src->copyTo(*dst);
+    int rangex = src->cols-1, rangey = src->rows-1;
+    for(int i = 1; i < rangey; ++i){
+        for(int j = 1; j < rangex; ++j){
+            uchar max = 0;
+            for(int m = -1; m < 2; ++m){
+                for(int n = -1; n < 2; ++n){
+                    max = MAX(max, src->ptr(i+m)[j+n]);
                 }
             }
-            dst->ptr(i+anchory)[j+anchorx] = 0;
-            nextloop:;
+            dst->ptr(i)[j] = max;
         }
     }
     return true;
 }
 
-bool grayErosion(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+bool grayErosion(Mat* src, Mat* dst)
 {
     if(src->channels() != 1)return false;
-    int krows = kernel->rows, kcols = kernel->cols;
-    int rangex = src->cols+1-kcols, rangey = src->rows+1-krows;
-    std::vector<uchar*> pix(krows);
-    for(int i = 0; i < rangey; ++i){
-        for(int k = 0; k < krows; ++k) pix[k] = src->ptr(i+k);
-        for(int j = 0; j < rangex; ++j){
-            for(int m = 0; m < krows; ++m){
-                for(int n = 0; n < kcols; ++n){
-                    if(!(kernel->ptr(m)[n] & pix[m][j+n])){
-                        dst->ptr(i+anchory)[j+anchorx] = 0;
-                        goto nextloop;
-                    }
+    src->copyTo(*dst);
+    int rangex = src->cols-1, rangey = src->rows-1;
+    for(int i = 1; i < rangey; ++i){
+        for(int j = 1; j < rangex; ++j){
+            uchar min = 255;
+            for(int m = -1; m < 2; ++m){
+                for(int n = -1; n < 2; ++n){
+                    min = MIN(min, src->ptr(i+m)[j+n]);
                 }
             }
-            dst->ptr(i+anchory)[j+anchorx] = 255;
-            nextloop:;
+            dst->ptr(i)[j] = min;
         }
     }
+    return true;
+}
+
+void matMin(Mat* src, Mat* dst){
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            dst->ptr(i)[j] = MIN(src->ptr(i)[j], dst->ptr(i)[j]);
+        }
+    }
+}
+
+void matMax(Mat* src, Mat* dst){
+    for(int i = 0; i < src->rows; ++i){
+        for(int j = 0; j < src->cols; ++j){
+            dst->ptr(i)[j] = MAX(src->ptr(i)[j], dst->ptr(i)[j]);
+        }
+    }
+}
+
+bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst)
+{
+    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    Mat tmp1(mark->rows, mark->cols, CV_8UC1);
+    mark->copyTo(tmp1);
+    Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    while (!isEqual(&tmp1, &tmp2)) {
+        tmp1.copyTo(tmp2);
+        grayDilation(&tmp1, &tmp1);
+        matMin(ground, &tmp1);
+    }
+    tmp1.copyTo(*dst);
+    return true;
+}
+
+bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst)
+{
+    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    Mat tmp1(mark->rows, mark->cols, CV_8UC1);
+    mark->copyTo(tmp1);
+    Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    while (!isEqual(&tmp1, &tmp2)) {
+        tmp1.copyTo(tmp2);
+        grayErosion(&tmp1, &tmp1);
+        matMax(ground, &tmp1);
+    }
+    tmp1.copyTo(*dst);
+    return true;
+}
+
+bool grayOpenRebuild(Mat *src, Mat *dst, int n)
+{
+    if(src->channels()!= 1) return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    for(int i = 0; i < n; ++i){
+        grayErosion(&tmp, &tmp);
+    }
+    return grayDilationRebuild(&tmp, src, dst);
+}
+
+bool grayCloseionRebuild(Mat *src, Mat *dst, int n)
+{
+    if(src->channels()!= 1) return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp);
+    for(int i = 0; i < n; ++i){
+        grayDilation(&tmp, &tmp);
+    }
+    return grayErosionRebuild(&tmp, src, dst);
+}
+
+bool waterShed(Mat* src, Mat* dst)
+{
     return true;
 }
 

@@ -83,6 +83,8 @@ private slots:
     void on_gmor_reconstruct_triggered();
     void on_gray_watershed_triggered();
 
+    void on_Hough_Line_triggered();
+
 private:
     ToolbarTool *toolbarTool;
     QLabel *label;

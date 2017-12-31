@@ -20,7 +20,6 @@
 #define DISTRANS    6
 #define SKELETON    7
 #define SKERECON    8
-#define MORRECON    9
 
 class BinaryMorphology: public QDialog
 {

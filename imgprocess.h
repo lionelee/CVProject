@@ -23,7 +23,7 @@ bool cvtRGB2GRAY(Mat* src, Mat* dst);
 bool cvtRGB2HSL(Mat* src, Mat* dst);
 bool cvtHSL2RGB(Mat* src, Mat* dst);
 bool adjusthsl(Mat* src, Mat* dst, int hue, int sat, int lig);
-bool adjustLevels(Mat* src, Mat* dst);
+bool adjustColorlevel(Mat* src, Mat* dst, int channel, int ib, double ig, int iw, int ob, int ow);
 
 //binarization of gray img
 bool cpMatGray(Mat* src, Mat* dst);
@@ -74,6 +74,7 @@ bool LaplacianDetect(Mat* src, Mat* dst);
 bool CannyDetect(Mat* src, Mat* dst, int low, int high, int size);
 
 //Hough transformation
+void HoughLine(Mat* src, Mat* dst, int threshold);
 
 //binary morphologic transformation
 void reflectKernel(Mat* kernel);
@@ -81,19 +82,27 @@ bool dilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool erosion(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 void matAnd(Mat* src1, Mat* src2,Mat* dst);
 void matOr(Mat* src1, Mat* src2,Mat* dst);
+void matOr(Mat* src, Mat* dst);
+void matNot(Mat* src);
 void matNot(Mat* src, Mat* dst);
-void hitOrMiss(Mat* src, Mat* dst, int anchorx, int anchory);
-bool thinning(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
-bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+void hitMiss(Mat* src, Mat* dst, Mat* k1, Mat* k2, int anchorx, int anchory);
+bool thinning(Mat* src, Mat* dst);
+bool thickening(Mat* src, Mat* dst);
 bool skeleton(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
-bool morphoReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool dilationRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool erosionRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool openRebuild(Mat* src, Mat* dst, Mat* kernel, int n, int anchorx, int anchory);
+bool closeRebuild(Mat* src, Mat* dst, Mat* kernel, int n, int anchorx, int anchory);
 
 //gray-level morphologic transformation
-bool grayDilation(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
-bool grayErosion(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
-bool grayMorphoReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
-bool waterShed();
+bool grayDilation(Mat* src, Mat* dst);
+bool grayErosion(Mat* src, Mat* dst);
+bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst);
+bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst);
+bool grayOpenRebuild(Mat* src, Mat* dst, int n);
+bool grayCloseionRebuild(Mat* src, Mat* dst, int n);
+bool waterShed(Mat* src, Mat* dst);
 
 
 #endif // IMGPROCESS_H

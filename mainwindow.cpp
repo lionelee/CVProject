@@ -1,6 +1,7 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "hsldialog.h"
+#include "colorleveldialog.h"
 #include "rotatedialog.h"
 #include "binarydialog.h"
 #include "contrastdialog.h"
@@ -10,7 +11,6 @@
 #include "cannydialog.h"
 #include "noisedialog.h"
 #include "binarymorphology.h"
-#include "graymorphology.h"
 
 #include <QScrollArea>
 #include <QGridLayout>
@@ -264,7 +264,8 @@ void MainWindow::on_adjust_HSL_triggered()
 void MainWindow::on_adjust_color_levels_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-
+    ColorLevelDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::on_channel_red_triggered()
@@ -372,16 +373,20 @@ void MainWindow::on_binary_thinning_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
-    BinaryMorphology dialog(this, THINNING);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    thinning(src, dst);
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_binary_thicking_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
-    BinaryMorphology dialog(this, THICKING);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    thickening(src, dst);
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_binary_skeleton_triggered()
@@ -404,8 +409,6 @@ void MainWindow::on_mor_reconstruct_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
-    BinaryMorphology dialog(this, MORRECON);
-    dialog.exec();
 }
 
 void MainWindow::on_gray_ersion_triggered()
@@ -414,46 +417,70 @@ void MainWindow::on_gray_ersion_triggered()
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
     Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-//    grayErosion(src, dst);
-//    imgWidget->updateImg(dst);
+    if(!grayErosion(src, dst))return;
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_gray_dilation_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    if(imgWidget->mat->channels()!=1)return;
-    GrayMorphology dialog(this, GDILATION);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!grayDilation(src, dst))return;
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_gray_open_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    if(imgWidget->mat->channels()!=1)return;
-    GrayMorphology dialog(this, GOPEN);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* tmp = new Mat(src->rows, src->cols, CV_8UC1);
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!grayErosion(src, tmp))return;
+    if(!grayDilation(tmp, dst))return;
+    delete tmp;
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_gray_close_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    if(imgWidget->mat->channels()!=1)return;
-    GrayMorphology dialog(this, GCLOSE);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* tmp = new Mat(src->rows, src->cols, CV_8UC1);
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!grayDilation(src, tmp))return;
+    if(!grayErosion(tmp, dst))return;
+    delete tmp;
+    imgWidget->updateImg(dst);
 }
 
 void MainWindow::on_gmor_reconstruct_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    if(imgWidget->mat->channels()!=1)return;
-    GrayMorphology dialog(this, GMORRECON);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+//    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
 }
 
 void MainWindow::on_gray_watershed_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    if(imgWidget->mat->channels()!=1)return;
-    GrayMorphology dialog(this, WATERSHED);
-    dialog.exec();
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!waterShed(src, dst))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_Hough_Line_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    HoughLine(src, dst, 20);
+    imgWidget->updateImg(dst);
 }

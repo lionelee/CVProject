@@ -11,7 +11,8 @@ BinaryMorphology::BinaryMorphology(QWidget *parent, int _type)
 
     for(int i = 0; i < 16; ++i){
         spin[i] = new QSpinBox(this);
-        spin[i]->setRange(0,1);
+        spin[i]->setRange(-10,10);
+        spin[i]->setValue(0);
         grid->addWidget(spin[i], i/4, i%4);
     }
     layout->addLayout(grid);
@@ -23,6 +24,8 @@ BinaryMorphology::BinaryMorphology(QWidget *parent, int _type)
     QHBoxLayout* layout1 = new QHBoxLayout(this);
     anchorx = new QSpinBox(this);
     anchory = new QSpinBox(this);
+    anchorx->setValue(1);
+    anchory->setValue(1);
     layout1->addWidget(new QLabel(tr("anchorx:")));
     layout1->addWidget(anchorx);
     layout1->addWidget(new QLabel(tr("anchory:")));
@@ -70,8 +73,8 @@ bool BinaryMorphology::getCustomKernel(Mat *kernel)
         return false;
     }
     std::string str = qstr.toStdString();
-    std::vector<std::vector<uchar>> vec;
-    std::vector<uchar> row_ele;
+    std::vector<std::vector<char>> vec;
+    std::vector<char> row_ele;
     int rows = 0, tmp = 1, cols = 0;
     for(int i = 0; i < str.length(); ++i){
         char c = str[i];
@@ -83,16 +86,17 @@ bool BinaryMorphology::getCustomKernel(Mat *kernel)
             vec.push_back(row_ele);
             row_ele.clear();
             tmp = 1;
-        }else if(c > '1' || c < '0'){
-            QMessageBox::critical(this,tr("error"),tr("all elements should be 0 or 1"));
-            return false;
+        }else if(c == '-' ){
+            ++i;
+            c= - (str[i] -'0');
+            row_ele.push_back(c);
         }else{
             row_ele.push_back(c-'0');
         }
     }
-    *kernel = Mat(rows, cols, CV_8UC1, Scalar::all(0));
+    *kernel = Mat(rows, cols, CV_8SC1, Scalar::all(0));
     for(int i = 0; i < rows; ++i){
-        uchar* data = kernel->ptr(i);
+        char* data = kernel->ptr<char>(i);
         for(int j = 0; j < vec[i].size(); ++j){
             data[j] = vec[i][j];
         }
@@ -105,6 +109,7 @@ void BinaryMorphology::operation(Mat* kernel)
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
     Mat* src = img->mat;
     Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    Mat* tmp;
     int ax = anchorx->value(), ay = anchory->value();
     if(ax >= kernel->cols || ay >= kernel->rows) return;
     switch (type) {
@@ -115,30 +120,31 @@ void BinaryMorphology::operation(Mat* kernel)
         dilation(src, dst, kernel, ax, ay);
         break;
     case OPEN:
-        erosion(src, dst, kernel, ax, ay);
-        dilation(src, dst, kernel, ax, ay);
+        tmp = new Mat(src->rows, src->cols, CV_8UC1);
+        erosion(src, tmp, kernel, ax, ay);
+        dilation(tmp, dst, kernel, ax, ay);
+        delete tmp;
         break;
     case CLOSE:
-        dilation(src, dst, kernel, ax, ay);
-        erosion(src, dst, kernel, ax, ay);
+        tmp = new Mat(src->rows, src->cols, CV_8UC1);
+        dilation(src, tmp, kernel, ax, ay);
+        erosion(tmp, dst, kernel, ax, ay);
+        delete tmp;
         break;
-    case THINNING:
-        thinning(src, dst, kernel, ax, ay);
-        break;
-    case THICKING:
-        thickening(src, dst, kernel, ax, ay);
-        break;
+//    case THINNING:
+//        thinning(src, dst, kernel, ax, ay);
+//        break;
+//    case THICKING:
+//        thickening(src, dst, kernel, ax, ay);
+//        break;
     case DISTRANS:
         //(src, dst, kernel, ax, ay);
         break;
     case SKELETON:
-        //(src, dst, kernel, ax, ay);
+        skeleton(src, dst, kernel, ax, ay);
         break;
     case SKERECON:
-        //(src, dst, kernel, ax, ay);
-        break;
-    case MORRECON:
-        //(src, dst, kernel, ax, ay);
+        skeletonReconstruct(src, dst, kernel, ax, ay);
         break;
     default: return;
     }
@@ -152,15 +158,15 @@ void BinaryMorphology::accept()
     Mat kernel;
     switch (id) {
     case 2:
-        kernel = (Mat_<uchar>(2,2)<<spin[0]->value(),spin[1]->value(),spin[4]->value(),spin[5]->value());
+        kernel = (Mat_<char>(2,2)<<spin[0]->value(),spin[1]->value(),spin[4]->value(),spin[5]->value());
         break;
     case 3:
-        kernel = (Mat_<uchar>(3,3)<<spin[0]->value(),spin[1]->value(),spin[2]->value(),
+        kernel = (Mat_<char>(3,3)<<spin[0]->value(),spin[1]->value(),spin[2]->value(),
                                     spin[4]->value(),spin[5]->value(),spin[6]->value(),
                                     spin[8]->value(),spin[9]->value(),spin[10]->value());
         break;
     case 4:
-        kernel = Mat(3,3,CV_8UC1);
+        kernel = Mat(3,3,CV_8SC1);
         for(int i =0; i < 4; ++i){
             kernel.data[i] = spin[i]->value();
         }

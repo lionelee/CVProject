@@ -39,10 +39,11 @@ HEADERS += \
     noisedialog.h \
     cannydialog.h \
     binarymorphology.h \
-    graymorphology.h \
     customfilter.h \
     scaledialog.h \
-    rotatedialog.h
+    rotatedialog.h \
+    cutdialog.h \
+    colorleveldialog.h
 
 
 SOURCES += \
@@ -62,10 +63,11 @@ SOURCES += \
     noisedialog.cpp \
     cannydialog.cpp \
     binarymorphology.cpp \
-    graymorphology.cpp \
     customfilter.cpp \
     scaledialog.cpp \
-    rotatedialog.cpp
+    rotatedialog.cpp \
+    cutdialog.cpp \
+    colorleveldialog.cpp
 
 FORMS += \
         mainwindow.ui

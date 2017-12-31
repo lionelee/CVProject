@@ -82,7 +82,7 @@ void HSLDialog::accept()
 
 void HSLDialog::reject()
 {
-    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
+    ImgWidget* img = (ImgWidget*)((MainWindow*)parent())->imgWidget;
     img->showImg(img->mat);
     QDialog::reject();
 }
