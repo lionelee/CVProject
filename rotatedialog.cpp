@@ -5,6 +5,7 @@
 RotateDialog::RotateDialog(QWidget* parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Rotate Image"));
     layout = new QVBoxLayout(this);
     combobox = new QComboBox(this);
     combobox->addItem(tr("Bilinear"));

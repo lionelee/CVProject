@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QSlider>
 #include <QCheckBox>
+#include <QLabel>
 #include "imgprocess.h"
 
 class HSLDialog: public QDialog
@@ -20,6 +21,7 @@ private slots:
     void on_value_changed(int);
 
 private:
+    QLabel *label_hue, *label_sat, *label_lig;
     QSlider *slider_hue, *slider_sat, *slider_lig;
     QCheckBox *check_preview;
 

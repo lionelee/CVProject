@@ -35,6 +35,8 @@ public:
     void adjustContrast();
     void smoothFilter();
     void customFilter();
+    void cutDialog();
+    void scaleDialog();
     void addNoise();
 
 protected:
@@ -61,6 +63,7 @@ private slots:
 
     void on_binary_Otsu_triggered();
     void on_binary_handson_triggered();
+    void on_binary_reverse_triggered();
 
     void on_action_Sobel_triggered();
     void on_action_Laplacian_triggered();
@@ -70,18 +73,26 @@ private slots:
     void on_binary_dilation_triggered();
     void on_binary_open_triggered();
     void on_binary_close_triggered();
+    void on_hit_miss_triggered();
     void on_binary_thinning_triggered();
     void on_binary_thicking_triggered();
+    void on_thining_serial_triggered();
+    void on_thickening_serial_triggered();
     void on_binary_skeleton_triggered();
     void on_ske_reconstruct_triggered();
-    void on_mor_reconstruct_triggered();
+    void on_Euler_distance_triggered();
+    void on_cblock_distance_triggered();
+    void on_cboard_distance_triggered();
+    void on_open_rebuild_triggered();
+    void on_close_rebuild_triggered();
 
     void on_gray_ersion_triggered();
     void on_gray_dilation_triggered();
     void on_gray_open_triggered();
     void on_gray_close_triggered();
-    void on_gmor_reconstruct_triggered();
     void on_gray_watershed_triggered();
+    void on_grayOpen_rebuild_triggered();
+    void on_grayClose_rebuild_triggered();
 
     void on_Hough_Line_triggered();
 

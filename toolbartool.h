@@ -29,10 +29,9 @@ private slots:
     void on_btn_alg_clicked();
     void on_btn_rot_clicked();
     void on_btn_cut_clicked();
+    void on_btn_sca_clicked();
     void on_btn_con_clicked();
     void on_btn_noise_clicked();
-    void on_sca_bilinear_triggered();
-    void on_sca_nearest_triggered();
     void on_filter_normal_triggered();
     void on_filter_custom_triggered();
 

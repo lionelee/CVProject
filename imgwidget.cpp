@@ -146,12 +146,22 @@ void ImgWidget::setScaleType(int type)
     sca_type = type;
 }
 
-
 void ImgWidget::setCut()
 {
     cut_flag = true;
     int width = this->width(), height = this->height();
     cut_rect = QRect(3*width/8,3*height/8,width/4,height/4);
+}
+
+void ImgWidget::unsetCut()
+{
+    cut_flag = false;
+}
+
+void ImgWidget::updateCut(int x, int y, int w, int h)
+{
+    cut_rect = QRect(x, y, w, h);
+    this->update();
 }
 
 
@@ -167,7 +177,7 @@ void ImgWidget::paintEvent(QPaintEvent *event)
         QPainterPath drawPath =p.subtracted(painterPath);
 
         QPainter paint(this);
-        paint.setOpacity(0.7);
+        paint.setOpacity(0.8);
         paint.fillPath(drawPath, QBrush(Qt::black));
     }
 }
@@ -181,9 +191,6 @@ void ImgWidget::mouseMoveEvent(QMouseEvent *event)
 {
     int posx = event->x();
     int posy = event->y();
-//    if(cut_flag){
-//        if(posx >cut_rect.x() && posx );
-//    }
     if(posx <0 || posx >= mat->cols || posy < 0 ||posy >= mat->rows)
         return;
     int red, green, blue, gray;

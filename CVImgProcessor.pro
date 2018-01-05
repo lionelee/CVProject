@@ -32,18 +32,18 @@ HEADERS += \
         binarydialog.h \
         hsldialog.h \
         histogramwidget.h \
-    toolbaropt.h \
-    contrastdialog.h \
-    filterdialog.h \
-    sobeldialog.h \
-    noisedialog.h \
-    cannydialog.h \
-    binarymorphology.h \
-    customfilter.h \
-    scaledialog.h \
-    rotatedialog.h \
-    cutdialog.h \
-    colorleveldialog.h
+        toolbaropt.h \
+        contrastdialog.h \
+        filterdialog.h \
+        sobeldialog.h \
+        noisedialog.h \
+        cannydialog.h \
+        binarymorphology.h \
+        customfilter.h \
+        scaledialog.h \
+        rotatedialog.h \
+        cutdialog.h \
+        colorleveldialog.h
 
 
 SOURCES += \
@@ -56,18 +56,18 @@ SOURCES += \
         hsldialog.cpp \
         binarydialog.cpp \
         histogramwidget.cpp \
-    toolbaropt.cpp \
-    contrastdialog.cpp \
-    filterdialog.cpp \
-    sobeldialog.cpp \
-    noisedialog.cpp \
-    cannydialog.cpp \
-    binarymorphology.cpp \
-    customfilter.cpp \
-    scaledialog.cpp \
-    rotatedialog.cpp \
-    cutdialog.cpp \
-    colorleveldialog.cpp
+        toolbaropt.cpp \
+        contrastdialog.cpp \
+        filterdialog.cpp \
+        sobeldialog.cpp \
+        noisedialog.cpp \
+        cannydialog.cpp \
+        binarymorphology.cpp \
+        customfilter.cpp \
+        scaledialog.cpp \
+        rotatedialog.cpp \
+        cutdialog.cpp \
+        colorleveldialog.cpp
 
 FORMS += \
         mainwindow.ui

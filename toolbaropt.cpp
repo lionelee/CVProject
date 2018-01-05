@@ -67,7 +67,7 @@ void ToolbarOpt::setAlgebraOpt()
 
 void ToolbarOpt::setCutOpt()
 {
-
+    ((MainWindow*)parent())->cutDialog();
 }
 
 

@@ -31,6 +31,8 @@ public:
 
     void setScaleType(int type);
     void setCut();
+    void unsetCut();
+    void updateCut(int x, int y, int w, int h);
 
 protected:
     void paintEvent(QPaintEvent *event);

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QSlider>
+#include <QLabel>
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include "histogramwidget.h"
@@ -21,6 +22,7 @@ private slots:
     void on_value_changed();
 
 private:
+    QLabel *label_min, *label_max;
     QSlider *slider_min, *slider_max;
     QCheckBox *check_preview;
     HistogramWidget *histWidget;

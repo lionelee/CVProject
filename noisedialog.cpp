@@ -1,7 +1,6 @@
 #include "noisedialog.h"
 #include "mainwindow.h"
 #include "imgwidget.h"
-#include <QLabel>
 
 #define BTN_SALT        0
 #define BTN_PEPPER      1
@@ -10,6 +9,7 @@
 NoiseDialog::NoiseDialog(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Add noise"));
     layout = new QVBoxLayout(this);
     hlayout = new QHBoxLayout(this);
     ImgWidget* img = ((MainWindow*)parent)->imgWidget;
@@ -17,9 +17,11 @@ NoiseDialog::NoiseDialog(QWidget *parent)
 
     QHBoxLayout* layout0 = new QHBoxLayout(this);
     slider = new QSlider(Qt::Horizontal, this);
-    slider->setRange(0, src->rows*src->cols);
+    int rmax = (int)src->rows*src->cols/100.0;
+    slider->setRange(0, rmax);
     slider->setValue(0);
-    layout0->addWidget(new QLabel(tr("number:")));
+    label_number = new QLabel(tr("number:"));
+    layout0->addWidget(label_number);
     layout0->addWidget(slider);
     layout->addLayout(layout0);
     connect(slider,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
@@ -28,13 +30,10 @@ NoiseDialog::NoiseDialog(QWidget *parent)
     btn_salt = new QRadioButton(tr("salt"),this);
     btn_salt->setChecked(true);
     btn_pepper = new QRadioButton(tr("pepper"),this);
-    btn_Gaussian = new QRadioButton(tr("Gaussian"),this);
     group->addButton(btn_salt, BTN_SALT);
     group->addButton(btn_pepper, BTN_PEPPER);
-    group->addButton(btn_Gaussian, BTN_GAUSSIAN);
     hlayout->addWidget(btn_salt);
     hlayout->addWidget(btn_pepper);
-    hlayout->addWidget(btn_Gaussian);
     layout->addLayout(hlayout);
 
     check_preview = new QCheckBox(tr("preview"),this);
@@ -53,8 +52,8 @@ NoiseDialog::NoiseDialog(QWidget *parent)
 NoiseDialog::~NoiseDialog()
 {
     delete layout, hlayout, group, slider;
-    delete btn_salt, btn_pepper, btn_Gaussian;
-    delete button, check_preview;
+    delete btn_salt, btn_pepper;
+    delete button, check_preview, label_number;
 }
 
 void NoiseDialog::accept()
@@ -70,8 +69,6 @@ void NoiseDialog::accept()
     case BTN_PEPPER:
         if(!pepperNoise(mat_show, slider->value()))return;
         break;
-    case BTN_GAUSSIAN:
-        break;
     default:return;
     }
     img->updateImg(mat_show);
@@ -80,6 +77,8 @@ void NoiseDialog::accept()
 
 void NoiseDialog::reject()
 {
+    ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
+    img->showImg(img->mat);
     QDialog::reject();
 }
 
@@ -90,14 +89,14 @@ void NoiseDialog::on_value_changed()
     Mat* src = img->mat;
     Mat mat_show(src->rows, src->cols, CV_8UC1);
     src->copyTo(mat_show);
+    int num = slider->value();
+    label_number->setText(tr("number:")+QString::fromStdString(num2str(num)));
     switch(group->checkedId()){
     case BTN_SALT:
-        if(!saltNoise(&mat_show, slider->value()))return;
+        if(!saltNoise(&mat_show, num))return;
         break;
     case BTN_PEPPER:
-        if(!pepperNoise(&mat_show, slider->value()))return;
-        break;
-    case BTN_GAUSSIAN:
+        if(!pepperNoise(&mat_show, num))return;
         break;
     default:return;
     }

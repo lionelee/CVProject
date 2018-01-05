@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QSlider>
+#include <QLabel>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QBoxLayout>
@@ -17,6 +18,7 @@
 #define BTN_LOGARITHM   2
 #define BTN_EXPONENT    3
 #define BTN_EQUALIZE    4
+#define BTN_REVERSE     5
 
 class ContrastDialog: public QDialog
 {
@@ -38,12 +40,13 @@ private slots:
 
 private:
     QVBoxLayout* layout;
+    QLabel *label_smin, *label_smax, *label_dmin, *label_dmax, *label_coeff1, *label_coeff2;
     QSlider *slider_smin, *slider_smax, *slider_dmin, *slider_dmax;
     QCheckBox *check_preview;
     HistogramWidget *histWidget;
     QDoubleSpinBox *coeff1, *coeff2;
     QButtonGroup *group;
-    QRadioButton *btn_lin, *btn_pie ,*btn_log, *btn_exp, *btn_equ;
+    QRadioButton *btn_lin, *btn_pie ,*btn_log, *btn_exp, *btn_equ, *btn_rev;
     QDialogButtonBox* button;
     Mat* mat_show;
     int* hist;

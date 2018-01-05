@@ -3,16 +3,15 @@
 #include "imgwidget.h"
 #include <QDialogButtonBox>
 #include <QBoxLayout>
-#include <QLabel>
 
 HSLDialog::HSLDialog(QWidget *parent) :
     QDialog(parent)
 {
-//    QWidget* tool_hsl = new QWidget();
+    this->setWindowTitle(tr("Adjust HSL"));
     QVBoxLayout* layout_hsl = new QVBoxLayout();
 
     QHBoxLayout* hlayout_hue = new QHBoxLayout();
-    QLabel* label_hue = new QLabel(tr("hue"));
+    label_hue = new QLabel(tr("hue:0"));
     slider_hue = new QSlider(Qt::Horizontal);
     slider_hue->setMaximum(240);
     slider_hue->setMinimum(0);
@@ -24,18 +23,18 @@ HSLDialog::HSLDialog(QWidget *parent) :
     slider_sat = new QSlider(Qt::Horizontal);
     slider_sat->setMaximum(240);
     slider_sat->setMinimum(0);
-    hlayout_sat->addWidget(slider_sat);
-    QLabel* label_sat = new QLabel(tr("sat"));
+    label_sat = new QLabel(tr("sat:0"));
     hlayout_sat->addWidget(label_sat);
+    hlayout_sat->addWidget(slider_sat);
     connect(slider_sat, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed(int)));
 
     QHBoxLayout* hlayout_lig = new QHBoxLayout();
     slider_lig = new QSlider(Qt::Horizontal);
     slider_lig->setMaximum(240);
     slider_lig->setMinimum(0);
-    hlayout_lig->addWidget(slider_lig);
-    QLabel* label_lig = new QLabel(tr("lig"));
+    label_lig = new QLabel(tr("lig:0"));
     hlayout_lig->addWidget(label_lig);
+    hlayout_lig->addWidget(slider_lig);
     connect(slider_lig, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed(int)));
 
     layout_hsl->addLayout(hlayout_hue);
@@ -62,9 +61,8 @@ HSLDialog::HSLDialog(QWidget *parent) :
 
 HSLDialog::~HSLDialog()
 {
-    delete slider_hue;
-    delete slider_sat;
-    delete slider_lig;
+    delete label_hue, label_sat, label_lig;
+    delete slider_hue, slider_sat, slider_lig;
     delete check_preview;
 }
 
@@ -92,7 +90,11 @@ void HSLDialog::on_value_changed(int)
     if(check_preview->isChecked()){
         ImgWidget* img = (ImgWidget*)(((MainWindow*)parent())->scrollArea->widget());
         Mat mat_tmp(mat_hsl->rows, mat_hsl->cols, CV_64FC3);
-        adjusthsl(mat_hsl, &mat_tmp,slider_hue->value(), slider_sat->value(), slider_lig->value());
+        int hue = slider_hue->value(), sat = slider_sat->value(), lig = slider_lig->value();
+        label_hue->setText(tr("hue:")+QString::fromStdString(num2str(hue)));
+        label_sat->setText(tr("sat:")+QString::fromStdString(num2str(sat)));
+        label_lig->setText(tr("lig:")+QString::fromStdString(num2str(lig)));
+        adjusthsl(mat_hsl, &mat_tmp,hue, sat, lig);
         Mat mat_show(mat_hsl->rows, mat_hsl->cols, CV_8UC3);
         cvtHSL2RGB(&mat_tmp, &mat_show);
         img->showImg(&mat_show);

@@ -9,6 +9,7 @@ QString uncheckedStyleSheet("border-style: solid; background-color: transparent;
 SobelDialog::SobelDialog(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Sobel Edge Detection"));
     layout = new QVBoxLayout(this);
     hlayout = new QHBoxLayout(this);
     group = new QButtonGroup(this);
@@ -66,6 +67,10 @@ SobelDialog::~SobelDialog()
 void SobelDialog::accept()
 {
     int type = group->checkedId();
+    if(type == -1){
+        QDialog::accept();
+        return;
+    }
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
     if(img == NULL)return;
     Mat* src = img->mat;

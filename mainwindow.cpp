@@ -3,6 +3,8 @@
 #include "hsldialog.h"
 #include "colorleveldialog.h"
 #include "rotatedialog.h"
+#include "cutdialog.h"
+#include "scaledialog.h"
 #include "binarydialog.h"
 #include "contrastdialog.h"
 #include "filterdialog.h"
@@ -18,6 +20,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QLineEdit>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -95,6 +98,21 @@ void MainWindow::customFilter()
     dialog.exec();
 }
 
+
+void MainWindow::cutDialog()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    CutDialog dialog(this);
+    dialog.exec();
+}
+
+void MainWindow::scaleDialog()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    ScaleDialog dialog(this);
+    dialog.exec();
+}
+
 void MainWindow::addNoise()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
@@ -122,6 +140,8 @@ void MainWindow::closeEvent(QCloseEvent*)
 /*private slots functions*/
 void MainWindow::on_action_New_triggered()
 {
+    MainWindow* mw = new MainWindow(parentWidget());
+    mw->show();
 }
 
 
@@ -264,6 +284,7 @@ void MainWindow::on_adjust_HSL_triggered()
 void MainWindow::on_adjust_color_levels_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=3)return;
     ColorLevelDialog dialog(this);
     dialog.exec();
 }
@@ -310,6 +331,15 @@ void MainWindow::on_binary_handson_triggered()
     BinaryDialog dialog(this);
     dialog.exec();
 }
+
+void MainWindow::on_binary_reverse_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* dst = new Mat(imgWidget->mat->rows, imgWidget->mat->cols, CV_8UC1);
+    if(!Reverse(imgWidget->mat, dst))return;
+    imgWidget->updateImg(dst);
+}
+
 
 void MainWindow::on_action_Sobel_triggered()
 {
@@ -369,7 +399,32 @@ void MainWindow::on_binary_close_triggered()
     dialog.exec();
 }
 
+void MainWindow::on_hit_miss_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, HITMISS);
+    dialog.exec();
+}
+
+
 void MainWindow::on_binary_thinning_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, THINNING);
+    dialog.exec();
+}
+
+void MainWindow::on_binary_thicking_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, THICKING);
+    dialog.exec();
+}
+
+void MainWindow::on_thining_serial_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
@@ -379,7 +434,7 @@ void MainWindow::on_binary_thinning_triggered()
     imgWidget->updateImg(dst);
 }
 
-void MainWindow::on_binary_thicking_triggered()
+void MainWindow::on_thickening_serial_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
@@ -405,10 +460,50 @@ void MainWindow::on_ske_reconstruct_triggered()
     dialog.exec();
 }
 
-void MainWindow::on_mor_reconstruct_triggered()
+void MainWindow::on_Euler_distance_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!distanceTrans(src, dst, EULERDIS))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_cblock_distance_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!distanceTrans(src, dst, CBLOCKDIS))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_cboard_distance_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    if(!distanceTrans(src, dst, CBOARDDIS))return;
+    imgWidget->updateImg(dst);
+}
+
+void MainWindow::on_open_rebuild_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, OPENRBD);
+    dialog.exec();
+}
+
+void MainWindow::on_close_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, CLOSERBD);
+    dialog.exec();
 }
 
 void MainWindow::on_gray_ersion_triggered()
@@ -457,14 +552,6 @@ void MainWindow::on_gray_close_triggered()
     imgWidget->updateImg(dst);
 }
 
-void MainWindow::on_gmor_reconstruct_triggered()
-{
-    if(imgWidget==NULL || imgWidget->mat==NULL)return;
-    Mat* src = imgWidget->mat;
-    if(src->channels()!=1)return;
-//    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-}
-
 void MainWindow::on_gray_watershed_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
@@ -475,12 +562,44 @@ void MainWindow::on_gray_watershed_triggered()
     imgWidget->updateImg(dst);
 }
 
+void MainWindow::on_grayOpen_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    bool ok = false;
+    int n = QInputDialog::getInt(this,tr("InputDialog"),tr("iteration:"),1,1,50,1,&ok);
+    if(ok){
+        if(!grayOpenRebuild(src, dst, n))return;
+        imgWidget->updateImg(dst);
+    }
+}
+
+void MainWindow::on_grayClose_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    bool ok = false;
+    int n = QInputDialog::getInt(this,tr("InputDialog"),tr("iteration:"),1,1,50,1,&ok);
+    if(ok){
+        if(!grayCloseRebuild(src, dst, n))return;
+        imgWidget->updateImg(dst);
+    }
+}
+
 void MainWindow::on_Hough_Line_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
     Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    HoughLine(src, dst, 20);
-    imgWidget->updateImg(dst);
+    bool ok = false;
+    int n = QInputDialog::getInt(this,tr("InputDialog"),tr("threshold:"),10,1,1000,1,&ok);
+    if(ok){
+        HoughLine(src, dst, n);
+        imgWidget->updateImg(dst);
+    }
 }

@@ -9,6 +9,7 @@
 FilterDialog::FilterDialog(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Smooth Filter"));
     layout = new QVBoxLayout(this);
 
     QHBoxLayout* layout0 = new QHBoxLayout(this);

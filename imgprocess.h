@@ -13,7 +13,12 @@ using namespace cv;
 #define BILINEAR    0
 #define NEAREST     1
 
+#define EULERDIS    0
+#define CBLOCKDIS   1
+#define CBOARDDIS   2
+
 std::string num2str(int num);
+std::string double2str(double num);
 
 //color img process
 bool cvtBGR2RGB(Mat* src, Mat* dst);
@@ -56,6 +61,8 @@ bool piecewiseAdjust(Mat* src, Mat* dst, int smin, int smax, int dmin, int dmax)
 bool logAdjust(Mat* src, Mat* dst, double coeff1);
 bool expAdjust(Mat* src, Mat* dst, double coeff1, double coeff2);
 bool equalization(Mat* src, Mat* dst);
+bool grayReverse(Mat* src, Mat* dst);
+bool Reverse(Mat* src, Mat* dst);
 
 //smoothing filter
 bool saltNoise(Mat* src, int n);
@@ -85,11 +92,14 @@ void matOr(Mat* src1, Mat* src2,Mat* dst);
 void matOr(Mat* src, Mat* dst);
 void matNot(Mat* src);
 void matNot(Mat* src, Mat* dst);
-void hitMiss(Mat* src, Mat* dst, Mat* k1, Mat* k2, int anchorx, int anchory);
-bool thinning(Mat* src, Mat* dst);
-bool thickening(Mat* src, Mat* dst);
+void thinning(Mat* src, Mat* dst);
+void thickening(Mat* src, Mat* dst);
+bool hitMiss(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool thinning(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool thickening(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool skeleton(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory);
+bool distanceTrans(Mat* src, Mat* dst, int type);
 bool dilationRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool erosionRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory);
 bool openRebuild(Mat* src, Mat* dst, Mat* kernel, int n, int anchorx, int anchory);
@@ -101,7 +111,7 @@ bool grayErosion(Mat* src, Mat* dst);
 bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst);
 bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst);
 bool grayOpenRebuild(Mat* src, Mat* dst, int n);
-bool grayCloseionRebuild(Mat* src, Mat* dst, int n);
+bool grayCloseRebuild(Mat* src, Mat* dst, int n);
 bool waterShed(Mat* src, Mat* dst);
 
 

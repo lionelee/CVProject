@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QBoxLayout>
 #include <QSlider>
+#include <QLabel>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -25,6 +26,7 @@ private slots:
 private:
     QVBoxLayout* layout;
     QComboBox* combobox;
+    QLabel *label_ib, *label_ig, *label_iw, *label_ob, *label_ow;
     QSlider *in_black, *in_gray, *in_white;
     QSlider *out_black, *out_white;
     QCheckBox *check_preview;

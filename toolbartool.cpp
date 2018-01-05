@@ -44,19 +44,10 @@ ToolbarTool::ToolbarTool(const QString &title, QWidget *parent)
     btn_sca = new QPushButton(this);
     btn_sca->setIcon(QIcon(":/res/tools/scale.png"));
     btn_sca->setIconSize(QSize(24,24));
-    btn_sca->setStatusTip(tr("scale type"));
+    btn_sca->setStatusTip(tr("scale image"));
     btn_sca->setStyleSheet(BtnQSS);
-    QMenu* menu_sca = new QMenu(this);
-    sca_bilinear = new QAction(tr("bilinear"),this);
-    sca_bilinear->setStatusTip(tr("bilinear"));
-    connect(sca_bilinear,SIGNAL(triggered(bool)),this,SLOT(on_sca_bilinear_triggered()));
-    sca_nearest = new QAction(tr("nearest"),this);
-    sca_nearest->setStatusTip(tr("nearest"));
-    connect(sca_nearest,SIGNAL(triggered(bool)),this,SLOT(on_sca_nearest_triggered()));
-    menu_sca->addAction(sca_bilinear);
-    menu_sca->addAction(sca_nearest);
-    btn_sca->setMenu(menu_sca);
     group->addButton(btn_sca, BTN_SCALE);
+    connect(btn_sca,SIGNAL(clicked(bool)),this, SLOT(on_btn_sca_clicked()));
 
     btn_cut = new QPushButton(this);
     btn_cut->setIcon(QIcon(":/res/tools/cut.png"));
@@ -134,6 +125,11 @@ void ToolbarTool::on_btn_cut_clicked()
     ((MainWindow*)parent())->toolbarOpt->setCutOpt();
 }
 
+void ToolbarTool::on_btn_sca_clicked()
+{
+    ((MainWindow*)parent())->scaleDialog();
+}
+
 void ToolbarTool::on_btn_con_clicked()
 {
     ((MainWindow*)parent())->adjustContrast();
@@ -142,20 +138,6 @@ void ToolbarTool::on_btn_con_clicked()
 void ToolbarTool::on_btn_noise_clicked()
 {
     ((MainWindow*)parent())->addNoise();
-}
-
-void ToolbarTool::on_sca_bilinear_triggered()
-{
-    ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    if(img==NULL)return;
-    img->setScaleType(BILINEAR);
-}
-
-void ToolbarTool::on_sca_nearest_triggered()
-{
-    ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    if(img==NULL)return;
-    img->setScaleType(NEAREST);
 }
 
 void ToolbarTool::on_filter_normal_triggered()

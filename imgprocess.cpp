@@ -8,7 +8,17 @@
 
 #define PI 3.1415926
 
-std::string num2str(int num){
+std::string num2str(int num)
+{
+    std::stringstream ss;
+    ss<<num;
+    std::string s;
+    ss>>s;
+    return s;
+}
+
+std::string double2str(double num)
+{
     std::stringstream ss;
     ss<<num;
     std::string s;
@@ -596,7 +606,7 @@ bool scaleC1(Mat* src, Mat* dst, int type)
                 dst->ptr(i)[j] = (uchar)round(gray);
 
             }else if(type == NEAREST){
-                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                int y = MIN(src->rows-1,round(y_res)), x = MIN(src->cols-1,round(x_res));
                 dst->ptr(i)[j] = src->ptr(y)[x];
             }else{
                 return false;
@@ -639,7 +649,7 @@ bool scaleC3(Mat* src, Mat* dst, int type)
                 dst->ptr<Vec3b>(i)[j][2] = (uchar)round(blue);
 
             }else if(type == NEAREST){
-                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                int y = MIN(src->rows-1,round(y_res)), x = MIN(src->cols-1,round(x_res));
                 dst->ptr<Vec3b>(i)[j][0] = src->ptr<Vec3b>(y)[x][0];
                 dst->ptr<Vec3b>(i)[j][1] = src->ptr<Vec3b>(y)[x][1];
                 dst->ptr<Vec3b>(i)[j][2] = src->ptr<Vec3b>(y)[x][2];
@@ -686,7 +696,7 @@ bool rotateC1(Mat* src, Mat* dst, double angle, int type)
                 dst->ptr(i)[j] = (uchar)round(gray);
 
             }else if(type == NEAREST){
-                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                int y = MIN(src->rows-1,round(y_res)), x = MIN(src->cols-1,round(x_res));
                 dst->ptr(i)[j] = src->ptr(y)[x];
             }else{
                 return false;
@@ -736,7 +746,7 @@ bool rotateC3(Mat* src, Mat* dst, double angle, int type)
                 dst->ptr<Vec3b>(i)[j][2] = (uchar)round(blue);
 
             }else if(type == NEAREST){
-                int y = (uchar)MIN(src->rows-1,round(y_res)), x = (uchar)MIN(src->cols-1,round(x_res));
+                int y = MIN(src->rows-1,round(y_res)), x = MIN(src->cols-1,round(x_res));
                 dst->ptr<Vec3b>(i)[j][0] = src->ptr<Vec3b>(y)[x][0];
                 dst->ptr<Vec3b>(i)[j][1] = src->ptr<Vec3b>(y)[x][1];
                 dst->ptr<Vec3b>(i)[j][2] = src->ptr<Vec3b>(y)[x][2];
@@ -926,9 +936,58 @@ bool equalization(Mat* src, Mat* dst)
             data_out[j] = (uchar)MIN(res,(double)255);
         }
     }
+    delete []hist;
     return true;
 }
 
+bool grayReverse(Mat *src, Mat *dst)
+{
+    if(src->channels()!=1)return false;
+    int* hist = new int[256];
+    for(int i = 0; i < 256; ++i){
+        hist[i] = 0;
+    }
+    int rows = src->rows, cols = src->cols, size = rows * cols;
+    getHistogram(src, hist);
+    uchar max = 0;
+    int cnt = 0;
+    for(int i = 1; i < 256; ++i){
+        if(hist[i] > cnt){
+            max = i;
+        }
+    }
+    if(src->isContinuous()){
+        rows = 1;
+        cols = size;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            data_out[j] = (uchar)max - data_in[j];
+        }
+    }
+    delete []hist;
+    return true;
+}
+
+bool Reverse(Mat *src, Mat *dst)
+{
+    if(src->channels()!=1)return false;
+    int rows = src->rows, cols = src->cols, size = rows * cols;
+    if(src->isContinuous()){
+        rows = 1;
+        cols = size;
+    }
+    for(int i = 0; i < rows; ++i){
+        uchar* data_in = src->ptr(i);
+        uchar* data_out = dst->ptr(i);
+        for(int j = 0; j < cols; ++j){
+            data_out[j] = (uchar)255 - data_in[j];
+        }
+    }
+    return true;
+}
 
 //smoothing filter
 bool saltNoise(Mat* src, int n)
@@ -1276,11 +1335,11 @@ void HoughLine(Mat* src, Mat* dst, int threshold)
     double sin_value[360];
     double cos_value[360];
     for(int i=0; i < 360; i++){
-        sin_value[i] = sin(i*PI/180);
-        cos_value[i] = cos(i*PI/180);
+        sin_value[i] = sin(i*PI/180.0);
+        cos_value[i] = cos(i*PI/180.0);
     }
     src->copyTo(*dst);
-    blur(*dst, *dst, Size(3,3) );
+    blur(*dst, *dst, Size(3,3));
     Canny(*dst, *dst, 50, 200);
     std::vector<struct line> lines;
     int diagonal = floor(sqrt(src->rows*src->rows + src->cols*src->cols));
@@ -1293,7 +1352,7 @@ void HoughLine(Mat* src, Mat* dst, int threshold)
         for(int j = 0; j < src->cols; ++j){
             if(dst->ptr(i)[j] > 0){
                 for(int a = 0; a < 360; ++a){
-                    int r = round(j*sin_value[a] + i*cos_value[a]);
+                    int r = round(j*cos_value[a] + i*sin_value[a]);
                     if(r < 0) continue;
                     ++p[a][r];
                 }
@@ -1349,7 +1408,8 @@ void HoughLine(Mat* src, Mat* dst, int threshold)
             points.push_back(point);
         }
         if(points.size()<2)continue;
-        cv::line(*dst, points[0], points[1], Scalar(255,255,255), 1, CV_AA);
+        cv::line(*dst, points[0], points[1], Scalar(255,255,255),1, CV_AA);
+        points.clear();
     }
 }
 
@@ -1476,124 +1536,35 @@ void matNot(Mat *src, Mat *dst)
     }
 }
 
-void hitMiss(Mat* src, Mat* dst, Mat* k1, Mat* k2, int anchorx, int anchory)
-{
-    Mat con(src->rows, src->cols, CV_8UC1);
-//    src->copyTo(*dst);
-    matNot(src, &con);
-    Mat tmp1(src->rows, src->cols, CV_8UC1);
-    Mat tmp2(src->rows, src->cols, CV_8UC1);
-    erosion(src, &tmp1, k1, anchorx, anchory);
-    erosion(&con, &tmp2, k2, anchorx, anchory);
-    matAnd(&tmp1, &tmp2, dst);
-}
-
-void getThinningSE(int num, Mat* se){
-    for(int i = 0; i < 3; ++i){
-        for(int j = 0; j < 3; ++j){
-            se->ptr(i)[j] = 0;
-        }
-    }
+Mat getThinningSE(int num){
+    Mat mat(3, 3, CV_8SC1);
     switch(num){
     case 0:
-        se->ptr(2)[0] = 1;
-        se->ptr(2)[1] = 1;
-        se->ptr(2)[2] = 1;
-        se->ptr(1)[1] = 1;
+        mat = (Mat_<char>(3,3)<<-1,-1,-1,0,1,0,1,1,1);
         break;
     case 1:
-        se->ptr(1)[1] = 1;
-        se->ptr(1)[0] = 1;
-        se->ptr(2)[0] = 1;
-        se->ptr(2)[1] = 1;
+        mat = (Mat_<char>(3,3)<<0,-1,-1,1,1,-1,1,1,0);
         break;
     case 2:
-        se->ptr(1)[1] = 1;
-        se->ptr(1)[0] = 1;
-        se->ptr(2)[0] = 1;
-        se->ptr(0)[0] = 1;
+        mat = (Mat_<char>(3,3)<<1,0,-1,1,1,-1,1,0,-1);
         break;
     case 3:
-        se->ptr(1)[1] = 1;
-        se->ptr(0)[0] = 1;
-        se->ptr(0)[1] = 1;
-        se->ptr(1)[0] = 1;
+        mat = (Mat_<char>(3,3)<<1,1,0,1,1,-1,0,-1,-1);
         break;
     case 4:
-        se->ptr(1)[1] = 1;
-        se->ptr(0)[0] = 1;
-        se->ptr(0)[1] = 1;
-        se->ptr(0)[2] = 1;
+        mat = (Mat_<char>(3,3)<<1,1,1,0,1,0,-1,-1,-1);
         break;
     case 5:
-        se->ptr(0)[1] = 1;
-        se->ptr(0)[2] = 1;
-        se->ptr(1)[1] = 1;
-        se->ptr(1)[2] = 1;
+        mat = (Mat_<char>(3,3)<<0,1,1,-1,1,1,-1,-1,0);
         break;
     case 6:
-        se->ptr(1)[1] = 1;
-        se->ptr(0)[2] = 1;
-        se->ptr(1)[2] = 1;
-        se->ptr(2)[2] = 1;
+        mat = (Mat_<char>(3,3)<<-1,0,1,-1,1,1,-1,0,1);
         break;
     case 7:
-        se->ptr(1)[1] = 1;
-        se->ptr(1)[2] = 1;
-        se->ptr(2)[1] = 1;
-        se->ptr(2)[2] = 1;
+        mat = (Mat_<char>(3,3)<<-1,-1,0,-1,1,1,0,0,1);
         break;
     }
-}
-
-void getThinningConSE(int num, Mat* se){
-    for(int i = 0; i < 3; ++i){
-        for(int j = 0; j < 3; ++j){
-            se->ptr(i)[j] = 0;
-        }
-    }
-    switch(num){
-    case 0:
-        se->ptr(0)[1] = 1;
-        se->ptr(0)[2] = 1;
-        se->ptr(0)[0] = 1;
-        break;
-    case 1:
-        se->ptr(0)[1] = 1;
-        se->ptr(0)[2] = 1;
-        se->ptr(1)[2] = 1;
-        break;
-    case 2:
-        se->ptr(0)[2] = 1;
-        se->ptr(1)[2] = 1;
-        se->ptr(2)[2] = 1;
-        break;
-    case 3:
-        se->ptr(1)[2] = 1;
-        se->ptr(2)[1] = 1;
-        se->ptr(2)[2] = 1;
-        break;
-    case 4:
-        se->ptr(2)[0] = 1;
-        se->ptr(2)[1] = 1;
-        se->ptr(2)[2] = 1;
-        break;
-    case 5:
-        se->ptr(1)[0] = 1;
-        se->ptr(2)[0] = 1;
-        se->ptr(2)[1] = 1;
-        break;
-    case 6:
-        se->ptr(0)[0] = 1;
-        se->ptr(1)[0] = 1;
-        se->ptr(2)[0] = 1;
-        break;
-    case 7:
-        se->ptr(0)[0] = 1;
-        se->ptr(0)[1] = 1;
-        se->ptr(1)[0] = 1;
-        break;
-    }
+    return mat;
 }
 
 bool isEqual(Mat* src, Mat* dst)
@@ -1610,12 +1581,12 @@ bool isEqual(Mat* src, Mat* dst)
 
 int thintimes = 0;
 
-bool thinning(Mat* src, Mat* dst)
+void thinning(Mat* src, Mat* dst)
 {
-    if(src->channels() != 1)return false;
     Mat tmp(src->rows, src->cols, CV_8UC1);
     Mat tmp1(src->rows, src->cols, CV_8UC1);
     Mat tmp2(src->rows, src->cols, CV_8UC1);
+    Mat tmp3(src->rows, src->cols, CV_8UC1);
     src->copyTo(tmp);
     thintimes = 0;
     int i = 0;
@@ -1623,45 +1594,92 @@ bool thinning(Mat* src, Mat* dst)
     while(i<50){
         tmp.copyTo(tmp2);
         for(int i = 0; i < 8; ++i){
-            tmp.copyTo(tmp1);
-            Mat* k1 = new Mat(3,3, CV_8UC1);
-            Mat* k2 = new Mat(3,3, CV_8UC1);
-            getThinningSE(i, k1);
-            getThinningConSE(i, k2);
-            hitMiss(&tmp1, &tmp, k1, k2, 1, 1);
-            matNot(&tmp);
-            matAnd(&tmp1, &tmp, &tmp);
-            delete k1, k2;
-//            diffMatC1(&tmp, &tmp1);
+            Mat kernel = getThinningSE(i);
+            hitMiss(&tmp, &tmp1, &kernel, 1, 1);
+            matNot(&tmp1);
+            matAnd(&tmp, &tmp1, &tmp3);
+            diffMatC1(&tmp3, &tmp);
         }
         ++i;
     }
     thintimes = i;
     tmp.copyTo(*dst);
-    return true;
 }
 
-bool thickening(Mat* src, Mat* dst)
+void thickening(Mat* src, Mat* dst)
 {
-    if(src->channels() != 1)return false;
     Mat tmp(src->rows, src->cols, CV_8UC1);
     Mat tmp1(src->rows, src->cols, CV_8UC1);
-//    Mat tmp2(src->rows, src->cols, CV_8UC1);
     src->copyTo(tmp);
     while(thintimes > 0){
         for(int i = 0; i < 8; ++i){
-            tmp.copyTo(tmp1);
-            Mat* k1 = new Mat(3,3, CV_8UC1);
-            Mat* k2 = new Mat(3,3, CV_8UC1);
-            getThinningSE(i, k1);
-            getThinningConSE(i, k2);
-            hitMiss(&tmp1, &tmp, k1, k2, 1, 1);
+            Mat kernel = getThinningSE(i);
+            hitMiss(&tmp, &tmp1, &kernel, 1, 1);
             matOr(&tmp1, &tmp);
-            delete k1, k2;
         }
         --thintimes;
     }
     tmp.copyTo(*dst);
+}
+
+bool hitMiss(Mat* src, Mat* dst, Mat* kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    if(countNonZero(*kernel) <= 0){
+        src->copyTo(*dst);
+        return true;
+    }
+    Mat k1(kernel->rows, kernel->cols, CV_8UC1);
+    Mat k2(kernel->rows, kernel->cols, CV_8UC1);
+    for(int i = 0; i < kernel->rows; ++i){
+        char* data = kernel->ptr<char>(i);
+        for(int j = 0; j < kernel->cols; ++j){
+            if(data[j] >= 1){
+                k1.ptr(i)[j] = 1;
+                k2.ptr(i)[j] = 0;
+            }else if(data[j] <= -1){
+                k1.ptr(i)[j] = 0;
+                k2.ptr(i)[j] = 1;
+            }else{
+                k1.ptr(i)[j] = 0;
+                k2.ptr(i)[j] = 0;
+            }
+        }
+    }
+
+    Mat e1(src->rows, src->cols, CV_8UC1);
+    Mat e2(src->rows, src->cols, CV_8UC1);
+    Mat con(src->rows, src->cols, CV_8UC1);
+    if (countNonZero(k1) <= 0)
+        src->copyTo(e1);
+    else
+        erosion(src, &e1, &k1, anchorx, anchory);
+
+    matNot(src, &con);
+    if (countNonZero(k2) <= 0)
+        con.copyTo(e2);
+    else
+        erosion(&con, &e2, &k2, anchorx, anchory);
+    matAnd(&e1, &e2, dst);
+    return true;
+}
+
+bool thinning(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    hitMiss(src, &tmp, kernel, anchorx, anchory);
+    matNot(&tmp);
+    matAnd(src, &tmp, dst);
+    return true;
+}
+
+bool thickening(Mat *src, Mat *dst, Mat *kernel, int anchorx, int anchory)
+{
+    if(src->channels() != 1)return false;
+    Mat tmp(src->rows, src->cols, CV_8UC1);
+    hitMiss(src, &tmp, kernel, anchorx, anchory);
+    matOr(src, &tmp, dst);
     return true;
 }
 
@@ -1704,7 +1722,7 @@ bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int ancho
     }
     Mat tmp(src->rows, src->cols, CV_8UC1);
     Mat tmp1(src->rows, src->cols, CV_8UC1);
-    int i = skeset.size()-1;
+    size_t i = skeset.size()-1;
     skeset[i].copyTo(tmp1);
     while(i > 0){
         dilation(&tmp1, &tmp, kernel, anchorx, anchory);
@@ -1716,6 +1734,66 @@ bool skeletonReconstruct(Mat* src, Mat* dst, Mat* kernel, int anchorx, int ancho
     return true;
 }
 
+inline int disf(int x1, int y1, int x2, int y2 ,int type)
+{
+    int ret = 0;
+    switch (type) {
+    case EULERDIS:
+        ret = sqrt(pow(x1-x2,2)+pow(y1-y2,2));
+        break;
+    case CBLOCKDIS:
+        ret = abs(x1-x2)+abs(y1-y2);
+        break;
+    case CBOARDDIS:
+        ret = MAX(abs(x1-x2), abs(y1-y2));
+        break;
+    default: return -1;
+    }
+    return ret;
+}
+
+bool distanceTrans(Mat* src, Mat* dst, int type)
+{
+    if(src->channels()!=1)return false;
+    src->copyTo(*dst);
+    int max = 0;
+
+    for(int i = 1; i < dst->rows-1; ++i){
+        for(int j = 1; j < dst->cols-1; ++j){
+            if(dst->ptr(i)[j] > 0){
+                int d0 = dst->ptr(i)[j];
+                int d1 = dst->ptr(i)[j-1]+disf(i, j-1, i, j, type);
+                int d2 = dst->ptr(i-1)[j-1]+disf(i, j-1, i, j, type);
+                int d3 = dst->ptr(i-1)[j]+disf(i-1, j, i, j, type);
+                int d4 = dst->ptr(i-1)[j+1]+disf(i-1, j+1, i, j, type);
+                uchar res = MIN(d0, d1); res = MIN(res, d2);
+                res = MIN(res, d3); res = MIN(res, d4);
+                dst->ptr(i)[j] = MIN(res, 255);
+            }
+        }
+    }
+    for(int i = dst->rows-2; i > 0 ; --i){
+        for(int j = dst->cols-2; j > 0; --j){
+            if(dst->ptr(i)[j] > 0){
+                int d0 = dst->ptr(i)[j];
+                int d5 = dst->ptr(i)[j+1]+disf(i, j+1, i, j, type);
+                int d6 = dst->ptr(i+1)[j+1]+disf(i+1, j+1, i, j, type);
+                int d7 = dst->ptr(i+1)[j]+disf(i+1, j, i, j, type);
+                int d8 = dst->ptr(i+1)[j-1]+disf(i+1, j-1, i, j, type);
+                uchar res = MIN(d0, d5); res = MIN(res, d6);
+                res = MIN(res, d7); res = MIN(res, d8);
+                dst->ptr(i)[j] = MIN(res, 255);
+                max = MAX(max, res);
+            }
+        }
+    }
+    for(int i = 0; i < dst->rows; ++i){
+        for(int j = 0; j < dst->cols; ++j){
+            dst->ptr(i)[j] = (uchar)round(255*(dst->ptr(i)[j]/(double)max));
+        }
+    }
+    return true;
+}
 
 bool dilationRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, int anchory)
 {
@@ -1723,10 +1801,11 @@ bool dilationRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx,
     Mat tmp1(mark->rows, mark->cols, CV_8UC1);
     mark->copyTo(tmp1);
     Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    Mat tmp3(mark->rows, mark->cols, CV_8UC1);
     while (!isEqual(&tmp1, &tmp2)) {
         tmp1.copyTo(tmp2);
-        dilation(&tmp1, &tmp1, kernel, anchorx, anchory);
-        matAnd(&tmp1, ground, dst);
+        dilation(&tmp1, &tmp3, kernel, anchorx, anchory);
+        matAnd(&tmp3, ground, dst);
         dst->copyTo(tmp1);
     }
     tmp1.copyTo(*dst);
@@ -1739,10 +1818,11 @@ bool erosionRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, 
     Mat tmp1(mark->rows, mark->cols, CV_8UC1);
     mark->copyTo(tmp1);
     Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    Mat tmp3(mark->rows, mark->cols, CV_8UC1);
     while (!isEqual(&tmp1, &tmp2)) {
         tmp1.copyTo(tmp2);
-        erosion(&tmp1, &tmp1, kernel, anchorx, anchory);
-        matOr(&tmp1, ground, dst);
+        erosion(&tmp1, &tmp3, kernel, anchorx, anchory);
+        matOr(&tmp3, ground, dst);
         dst->copyTo(tmp1);
     }
     tmp1.copyTo(*dst);
@@ -1752,23 +1832,27 @@ bool erosionRebuild(Mat* mark, Mat* ground, Mat* dst, Mat* kernel, int anchorx, 
 bool openRebuild(Mat *src, Mat *dst, Mat *kernel, int n, int anchorx, int anchory)
 {
     if(src->channels()!= 1) return false;
-    Mat tmp(src->rows, src->cols, CV_8UC1);
-    src->copyTo(tmp);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp1);
     for(int i = 0; i < n; ++i){
-        erosion(&tmp, &tmp, kernel, anchorx, anchory);
+        erosion(&tmp1, &tmp2, kernel, anchorx, anchory);
+        tmp2.copyTo(tmp1);
     }
-    return dilationRebuild(&tmp, src, dst, kernel, anchorx, anchory);
+    return dilationRebuild(&tmp1, src, dst, kernel, anchorx, anchory);
 }
 
 bool closeRebuild(Mat *src, Mat *dst, Mat *kernel, int n, int anchorx, int anchory)
 {
     if(src->channels()!= 1) return false;
-    Mat tmp(src->rows, src->cols, CV_8UC1);
-    src->copyTo(tmp);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp1);
     for(int i = 0; i < n; ++i){
-        dilation(&tmp, &tmp, kernel, anchorx, anchory);
+        dilation(&tmp1, &tmp2, kernel, anchorx, anchory);
+        tmp2.copyTo(tmp1);
     }
-    return erosionRebuild(&tmp, src, dst, kernel, anchorx, anchory);
+    return erosionRebuild(&tmp1, src, dst, kernel, anchorx, anchory);
 }
 
 //gray-level morphologic transformation
@@ -1828,13 +1912,15 @@ void matMax(Mat* src, Mat* dst){
 
 bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst)
 {
-    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    if(mark->channels()!=1 || ground->channels()!=1) return false;
     Mat tmp1(mark->rows, mark->cols, CV_8UC1);
     mark->copyTo(tmp1);
     Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    Mat tmp3(mark->rows, mark->cols, CV_8UC1);
     while (!isEqual(&tmp1, &tmp2)) {
         tmp1.copyTo(tmp2);
-        grayDilation(&tmp1, &tmp1);
+        grayDilation(&tmp1, &tmp3);
+        tmp3.copyTo(tmp1);
         matMin(ground, &tmp1);
     }
     tmp1.copyTo(*dst);
@@ -1843,13 +1929,15 @@ bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst)
 
 bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst)
 {
-    if(mark->channels()!= 1 || ground->channels()!=1) return false;
+    if(mark->channels()!=1 || ground->channels()!=1) return false;
     Mat tmp1(mark->rows, mark->cols, CV_8UC1);
     mark->copyTo(tmp1);
     Mat tmp2(mark->rows, mark->cols, CV_8UC1);
+    Mat tmp3(mark->rows, mark->cols, CV_8UC1);
     while (!isEqual(&tmp1, &tmp2)) {
         tmp1.copyTo(tmp2);
-        grayErosion(&tmp1, &tmp1);
+        grayErosion(&tmp1, &tmp3);
+        tmp3.copyTo(tmp1);
         matMax(ground, &tmp1);
     }
     tmp1.copyTo(*dst);
@@ -1859,29 +1947,186 @@ bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst)
 bool grayOpenRebuild(Mat *src, Mat *dst, int n)
 {
     if(src->channels()!= 1) return false;
-    Mat tmp(src->rows, src->cols, CV_8UC1);
-    src->copyTo(tmp);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp1);
     for(int i = 0; i < n; ++i){
-        grayErosion(&tmp, &tmp);
+        grayErosion(&tmp1, &tmp2);
+        tmp2.copyTo(tmp1);
     }
-    return grayDilationRebuild(&tmp, src, dst);
+    return grayDilationRebuild(&tmp2, src, dst);
 }
 
-bool grayCloseionRebuild(Mat *src, Mat *dst, int n)
+bool grayCloseRebuild(Mat *src, Mat *dst, int n)
 {
     if(src->channels()!= 1) return false;
-    Mat tmp(src->rows, src->cols, CV_8UC1);
-    src->copyTo(tmp);
+    Mat tmp1(src->rows, src->cols, CV_8UC1);
+    Mat tmp2(src->rows, src->cols, CV_8UC1);
+    src->copyTo(tmp1);
     for(int i = 0; i < n; ++i){
-        grayDilation(&tmp, &tmp);
+        grayDilation(&tmp1, &tmp2);
+        tmp2.copyTo(tmp1);
     }
-    return grayErosionRebuild(&tmp, src, dst);
+    return grayErosionRebuild(&tmp2, src, dst);
+}
+
+class WSPixel{
+public:
+    int x, y, label, dist;
+    uchar gray;
+    std::vector<WSPixel*> neighbors;
+
+    WSPixel(int _x, int _y, uchar _gray)
+        :x(_x), y(_y), gray(_gray){label = -1; dist = 0;}
+    WSPixel(){label = -4;}
+    ~WSPixel(){
+        for(int i = 0; i < neighbors.size(); ++i){
+            neighbors[i] = NULL;
+        }
+    }
+    bool areNeighboursAllWSHED() {
+        for (int i = 0 ; i < neighbors.size() ; ++i) {
+            if(neighbors[i]->label != 0) return false;
+        }
+        return true;
+    }
+};
+
+bool less(WSPixel* a, WSPixel* b)
+{
+    return a->gray < b->gray;
 }
 
 bool waterShed(Mat* src, Mat* dst)
 {
+    if(src->channels() != 1)return false;
+    int rows = src->rows, cols = src->cols;
+    std::vector<WSPixel*> pixels;
+    /*sort the pixels*/
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j){
+            pixels.push_back(new WSPixel(j, i, src->ptr(i)[j]));
+        }
+    }
+    for(int i = 0; i < rows; ++i){
+        for(int j = 0; j < cols; ++j){
+            int idx = i*cols + j;
+            WSPixel* p = pixels[idx];
+            if(j-1 >= 0){
+                p->neighbors.push_back(pixels[idx-1]);
+                if(i-1 >= 0)
+                    p->neighbors.push_back(pixels[idx-1-cols]);
+                if(i+1 < rows)
+                    p->neighbors.push_back(pixels[idx-1+cols]);
+            }
+            if(j+1 < cols){
+                p->neighbors.push_back(pixels[idx+1]);
+                if(i-1 >= 0)
+                    p->neighbors.push_back(pixels[idx+1-cols]);
+                if(i+1 < rows)
+                    p->neighbors.push_back(pixels[idx+1+cols]);
+            }
+            if(i-1 >= 0)
+                 p->neighbors.push_back(pixels[idx-cols]);
+            if(i+1 < rows)
+                 p->neighbors.push_back(pixels[idx+cols]);
+        }
+    }
+    std::sort(pixels.begin(), pixels.end(), less);
+
+    /*flood*/
+    std::queue<WSPixel*>Q;
+    int curlab = 0;
+    int idx1 = 0, idx2 = 0;
+    for(int h = 0; h < 256; ++h){
+        size_t size = pixels.size();
+        for(int i = idx1; i < size; ++i){
+            if(pixels[i]->gray != h){idx1 = i; break;}
+            pixels[i]->label = -2;
+            std::vector<WSPixel*> neighbors = pixels[i]->neighbors;
+            for(int j = 0; j < neighbors.size(); ++j){
+                if(neighbors[j]->label >= 0){
+                    pixels[i]->dist = 1;
+                    Q.push(neighbors[j]);
+                    break;
+                }
+            }
+        }
+
+        int curdist = 1;
+        Q.push(new WSPixel());
+        while(true){
+            WSPixel* p = Q.front(); Q.pop();
+            if(p->label == -4){
+                if (Q.empty()){
+                    delete p; p = NULL;
+                    break;
+                }else {
+                    Q.push(new WSPixel());
+                    curdist++;
+                    delete p;
+                    p = Q.front(); Q.pop();
+                }
+            }
+            std::vector<WSPixel*> neighbors = p->neighbors;
+            for(int m = 0; m < neighbors.size(); ++m){
+                WSPixel* tmp = neighbors[m];
+                if(tmp->dist <= curdist && tmp->label >= 0){
+                    if(tmp->label > 0){
+                        if(p->label == -2){
+                            p->label = tmp->label;
+                        }else if(p->label != tmp->label){
+                            p->label = 0;
+                        }
+                    }else if(p->label == -2){
+                        p->label = 0;
+                    }
+                }else if(tmp->label == -2 && tmp->dist == 0){
+                    tmp->dist = curdist + 1;
+                    Q.push(tmp);
+                }
+            }
+        }
+
+        for(int n = idx2; n < size; ++n){
+            WSPixel* p = pixels[n];
+            if(p->gray != h){idx2 = n; break;}
+            p->dist = 0;
+            if(p->label == -2){
+                ++curlab;
+                p->label = curlab;
+                Q.push(p);
+                while(!Q.empty()){
+                    WSPixel* tmp = Q.front(); Q.pop();
+                    std::vector<WSPixel*> neighors = tmp->neighbors;
+                    for(int l = 0; l < neighors.size(); ++l){
+                        if(neighors[l]->label == -2){
+                            neighors[l]->label = curlab;
+                            Q.push(neighors[l]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /*generate line*/
+    for(int i = 0; i < src->rows; ++i)
+        for(int j = 0; j < src->cols; ++j)
+            dst->ptr(i)[j] = 0;
+    size_t size = pixels.size();
+    for(int i = 0; i < size; ++i){
+        WSPixel* p = pixels[i];
+        if(p->label == 0 && !p->areNeighboursAllWSHED()){
+            dst->ptr(p->y)[p->x] = (uchar)255;
+        }
+    }
+    WSPixel* pixel;
+    while(!pixels.empty()){
+        pixel = pixels.back();
+        pixels.pop_back();
+        delete pixel;
+    }
+    pixel = NULL;
     return true;
 }
-
-
-

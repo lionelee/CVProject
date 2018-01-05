@@ -6,6 +6,7 @@
 CustomFilter::CustomFilter(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Custom Smooth Filter"));
     layout = new QVBoxLayout(this);
     grid = new QGridLayout();
 

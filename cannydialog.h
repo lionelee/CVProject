@@ -3,9 +3,10 @@
 
 #include <QDialog>
 #include <QBoxLayout>
-#include <QDialogButtonBox>
+#include <QLabel>
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QDialogButtonBox>
 #include "imgwidget.h"
 
 class CannyDialog: public QDialog
@@ -24,6 +25,7 @@ private slots:
 private:
     QVBoxLayout* layout;
     QDialogButtonBox* button;
+    QLabel *label_low, *label_high, *label_spin;
     QSpinBox *spin_low, *spin_high, *spin;
     QCheckBox *check_preview;
     Mat* mat_show;

@@ -15,11 +15,13 @@
 #define DILATION    1
 #define OPEN        2
 #define CLOSE       3
-#define THINNING    4
-#define THICKING    5
-#define DISTRANS    6
+#define HITMISS     4
+#define THINNING    5
+#define THICKING    6
 #define SKELETON    7
 #define SKERECON    8
+#define OPENRBD     9
+#define CLOSERBD    10
 
 class BinaryMorphology: public QDialog
 {
@@ -43,7 +45,7 @@ private:
     QGridLayout* grid;
     QTextEdit* text;
     QSpinBox* spin[16];
-    QSpinBox *anchorx, *anchory;
+    QSpinBox *anchorx, *anchory, *iter;
     QButtonGroup* group;
     QRadioButton *btn_two, *btn_three, *btn_four, *btn_custom;
     QDialogButtonBox* button;

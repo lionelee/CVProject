@@ -3,9 +3,11 @@
 
 #include <QDialog>
 #include <QLabel>
-#include <QSpinBox>
+#include <QSlider>
+#include <QCheckBox>
 #include <QBoxLayout>
 #include <QDialogButtonBox>
+#include "imgprocess.h"
 
 class CutDialog: public QDialog
 {
@@ -18,12 +20,14 @@ public:
 private slots:
     void accept();
     void reject();
+    void on_value_changed();
 
 private:
     QVBoxLayout* layout;
     QLabel *label_px, *label_py, *label_cw, *label_ch;
-    QSpinBox *px, *py, *cw, *ch;
+    QSlider *px, *py, *cw, *ch;
     QDialogButtonBox* button;
+    QCheckBox *check_preview;
 
 };
 

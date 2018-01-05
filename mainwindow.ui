@@ -86,6 +86,7 @@
     </property>
     <addaction name="binary_Otsu"/>
     <addaction name="binary_handson"/>
+    <addaction name="binary_reverse"/>
    </widget>
    <widget class="QMenu" name="menu_H">
     <property name="title">
@@ -116,17 +117,42 @@
     </widget>
     <widget class="QMenu" name="menu_9">
      <property name="title">
-      <string>细化/粗化/骨架</string>
+      <string>击中击不中/细化/粗化</string>
      </property>
+     <addaction name="hit_miss"/>
      <addaction name="binary_thinning"/>
      <addaction name="binary_thicking"/>
+     <addaction name="thining_serial"/>
+     <addaction name="thickening_serial"/>
+    </widget>
+    <widget class="QMenu" name="menu_11">
+     <property name="title">
+      <string>距离变换</string>
+     </property>
+     <addaction name="Euler_distance"/>
+     <addaction name="cblock_distance"/>
+     <addaction name="cboard_distance"/>
+    </widget>
+    <widget class="QMenu" name="menu_12">
+     <property name="title">
+      <string>骨架/骨架重构</string>
+     </property>
      <addaction name="binary_skeleton"/>
+     <addaction name="ske_reconstruct"/>
+    </widget>
+    <widget class="QMenu" name="menu_13">
+     <property name="title">
+      <string>形态学重建</string>
+     </property>
+     <addaction name="open_rebuild"/>
+     <addaction name="close_rebuild"/>
     </widget>
     <addaction name="menu_8"/>
     <addaction name="menu_9"/>
     <addaction name="separator"/>
-    <addaction name="ske_reconstruct"/>
-    <addaction name="mor_reconstruct"/>
+    <addaction name="menu_12"/>
+    <addaction name="menu_13"/>
+    <addaction name="menu_11"/>
    </widget>
    <widget class="QMenu" name="menu_7">
     <property name="title">
@@ -141,9 +167,16 @@
      <addaction name="gray_open"/>
      <addaction name="gray_close"/>
     </widget>
+    <widget class="QMenu" name="menu_14">
+     <property name="title">
+      <string>形态学重建</string>
+     </property>
+     <addaction name="grayOpen_rebuild"/>
+     <addaction name="grayClose_rebuild"/>
+    </widget>
     <addaction name="menu_10"/>
     <addaction name="separator"/>
-    <addaction name="gmor_reconstruct"/>
+    <addaction name="menu_14"/>
     <addaction name="gray_watershed"/>
    </widget>
    <addaction name="menu"/>
@@ -358,11 +391,6 @@
     <string>骨架重构</string>
    </property>
   </action>
-  <action name="mor_reconstruct">
-   <property name="text">
-    <string>形态学重构</string>
-   </property>
-  </action>
   <action name="binary_ersion">
    <property name="text">
     <string>腐蚀</string>
@@ -418,11 +446,6 @@
     <string>闭操作</string>
    </property>
   </action>
-  <action name="gmor_reconstruct">
-   <property name="text">
-    <string>形态学重构</string>
-   </property>
-  </action>
   <action name="gray_watershed">
    <property name="text">
     <string>分水岭算法</string>
@@ -431,6 +454,56 @@
   <action name="hit_miss">
    <property name="text">
     <string>击中击不中</string>
+   </property>
+  </action>
+  <action name="Euler_distance">
+   <property name="text">
+    <string>欧式距离</string>
+   </property>
+  </action>
+  <action name="cblock_distance">
+   <property name="text">
+    <string>街区距离</string>
+   </property>
+  </action>
+  <action name="cboard_distance">
+   <property name="text">
+    <string>棋盘距离</string>
+   </property>
+  </action>
+  <action name="binary_reverse">
+   <property name="text">
+    <string>图像反转</string>
+   </property>
+  </action>
+  <action name="open_rebuild">
+   <property name="text">
+    <string>重建开操作</string>
+   </property>
+  </action>
+  <action name="close_rebuild">
+   <property name="text">
+    <string>重建闭操作</string>
+   </property>
+  </action>
+  <action name="grayOpen_rebuild">
+   <property name="text">
+    <string>重建开操作</string>
+   </property>
+  </action>
+  <action name="grayClose_rebuild">
+   <property name="text">
+    <string>重建闭操作</string>
+   </property>
+  </action>
+  <action name="thining_serial">
+   <property name="text">
+    <string>细化序列</string>
+   </property>
+  </action>
+  <action name="thickening_serial">
+   <property name="text">
+    <string>粗化序列</string>
    </property>
   </action>
  </widget>

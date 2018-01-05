@@ -9,6 +9,7 @@
 BinaryDialog::BinaryDialog(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Image Binaration"));
     QVBoxLayout* layout_binary = new QVBoxLayout();
 
     int* hist = new int[256];
@@ -21,7 +22,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     layout_binary->addWidget(histWidget);
 
     QHBoxLayout* hlayout_min = new QHBoxLayout();
-    QLabel* label_min = new QLabel(tr("min"));
+    label_min = new QLabel(tr("min:0"));
     slider_min = new QSlider(Qt::Horizontal);
     slider_min->setMaximum(255);
     slider_min->setMinimum(0);
@@ -31,7 +32,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
     connect(slider_min, SIGNAL(valueChanged(int)), this, SLOT(on_value_changed()));
 
     QHBoxLayout* hlayout_max = new QHBoxLayout();
-    QLabel* label_max = new QLabel(tr("max"));
+    label_max = new QLabel(tr("max:0"));
     slider_max = new QSlider(Qt::Horizontal);
     slider_max->setMaximum(255);
     slider_max->setMinimum(0);
@@ -57,6 +58,7 @@ BinaryDialog::BinaryDialog(QWidget *parent)
 
 BinaryDialog::~BinaryDialog()
 {
+    delete label_min, label_max;
     delete slider_min, slider_max;
     delete histWidget, button;
 }
@@ -88,6 +90,8 @@ void BinaryDialog::on_value_changed()
 {
     if(!check_preview->isChecked())return;
     int min = slider_min->value(), max = slider_max->value();
+    label_min->setText(tr("min:")+QString::fromStdString(num2str(min)));
+    label_max->setText(tr("max:")+QString::fromStdString(num2str(max)));
     if(min > max){
         int tmp = max;
         max = min;

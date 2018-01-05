@@ -4,23 +4,37 @@
 CannyDialog::CannyDialog(QWidget *parent)
     :QDialog(parent)
 {
+    this->setWindowTitle(tr("Canny Edge Detection"));
     layout = new QVBoxLayout(this);
 
+    QHBoxLayout* layout_low = new QHBoxLayout(this);
     spin_low = new QSpinBox(this);
     spin_low->setRange(1,255);
+    label_low = new QLabel(tr("low threshold:"));
+    layout_low->addWidget(label_low);
+    layout_low->addWidget(spin_low);
+    layout->addLayout(layout_low);
     connect(spin_low,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
+
+    QHBoxLayout* layout_high = new QHBoxLayout(this);
     spin_high = new QSpinBox(this);
     spin_high->setRange(1,500);
+    label_high = new QLabel(tr("high threshold:"));
+    layout_high->addWidget(label_high);
+    layout_high->addWidget(spin_high);
+    layout->addLayout(layout_high);
     connect(spin_high,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
-    layout->addWidget(spin_low);
-    layout->addWidget(spin_high);
 
+    QHBoxLayout* layout_spin = new QHBoxLayout(this);
     spin = new QSpinBox(this);
     spin->setRange(1,9);
     spin->setValue(3);
     spin->setSingleStep(2);
+    label_spin = new QLabel(tr("kernel sizse:"));
+    layout_spin->addWidget(label_spin);
+    layout_spin->addWidget(spin);
+    layout->addLayout(layout_spin);
     connect(spin,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
-    layout->addWidget(spin);
 
     check_preview = new QCheckBox(tr("preview"),this);
     check_preview->setChecked(false);
@@ -42,6 +56,7 @@ CannyDialog::CannyDialog(QWidget *parent)
 CannyDialog::~CannyDialog()
 {
     delete layout, button;
+    delete label_low, label_high, label_spin;
     delete spin_low, spin_high;
     delete spin, check_preview;
 }
@@ -72,8 +87,8 @@ void CannyDialog::on_value_changed()
 {
     if(!check_preview->isChecked())return;
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
-    int low = spin_low->value();
-    int high = spin_high->value();
+    int low = spin_low->value(), high = spin_high->value();
+
     if(low >high){
         int tmp = low;
         low = high;

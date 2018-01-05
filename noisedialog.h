@@ -5,6 +5,7 @@
 #include <QButtonGroup>
 #include <QRadioButton>
 #include <QSlider>
+#include <QLabel>
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QBoxLayout>
@@ -26,8 +27,9 @@ private:
     QVBoxLayout* layout;
     QHBoxLayout* hlayout;
     QSlider* slider;
+    QLabel* label_number;
     QButtonGroup* group;
-    QRadioButton *btn_salt, *btn_pepper, *btn_Gaussian;
+    QRadioButton *btn_salt, *btn_pepper;
     QCheckBox *check_preview;
     QDialogButtonBox *button;
 

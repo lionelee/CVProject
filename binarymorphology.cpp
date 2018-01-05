@@ -6,6 +6,7 @@
 BinaryMorphology::BinaryMorphology(QWidget *parent, int _type)
     :QDialog(parent),type(_type)
 {
+    this->setWindowTitle(tr("Binary Morphology"));
     layout = new QVBoxLayout(this);
     grid = new QGridLayout();
 
@@ -23,14 +24,30 @@ BinaryMorphology::BinaryMorphology(QWidget *parent, int _type)
 
     QHBoxLayout* layout1 = new QHBoxLayout(this);
     anchorx = new QSpinBox(this);
-    anchory = new QSpinBox(this);
+    anchorx->setMinimum(0);
     anchorx->setValue(1);
+    anchory = new QSpinBox(this);
+    anchory->setMinimum(0);
     anchory->setValue(1);
     layout1->addWidget(new QLabel(tr("anchorx:")));
     layout1->addWidget(anchorx);
     layout1->addWidget(new QLabel(tr("anchory:")));
     layout1->addWidget(anchory);
     layout->addLayout(layout1);
+
+    iter = new QSpinBox(this);
+    iter->setMinimum(1);
+    iter->setValue(1);
+    QHBoxLayout* layout2 = new QHBoxLayout(this);
+    QLabel* label_iter = new QLabel(tr("iteration:"));
+    layout2->addWidget(label_iter);
+    layout2->addWidget(iter);
+    layout->addLayout(layout2);
+
+    if(type != OPENRBD && type != CLOSERBD){
+        iter->setVisible(false);
+        label_iter->setVisible(false);
+    }
 
     group = new QButtonGroup(this);
     btn_two = new QRadioButton(tr("two"),this);
@@ -62,7 +79,7 @@ BinaryMorphology::~BinaryMorphology()
     delete layout, grid, group, button;
     delete btn_two, btn_three, btn_four, btn_custom;
     for(int i =0; i < 16; ++i) delete spin[i];
-    delete text, anchorx, anchory;
+    delete text, anchorx, anchory, iter;
 }
 
 bool BinaryMorphology::getCustomKernel(Mat *kernel)
@@ -131,20 +148,26 @@ void BinaryMorphology::operation(Mat* kernel)
         erosion(tmp, dst, kernel, ax, ay);
         delete tmp;
         break;
-//    case THINNING:
-//        thinning(src, dst, kernel, ax, ay);
-//        break;
-//    case THICKING:
-//        thickening(src, dst, kernel, ax, ay);
-//        break;
-    case DISTRANS:
-        //(src, dst, kernel, ax, ay);
+    case HITMISS:
+        hitMiss(src, dst, kernel, ax, ay);
+        break;
+    case THINNING:
+        thinning(src, dst, kernel, ax, ay);
+        break;
+    case THICKING:
+        thickening(src, dst, kernel, ax, ay);
         break;
     case SKELETON:
         skeleton(src, dst, kernel, ax, ay);
         break;
     case SKERECON:
         skeletonReconstruct(src, dst, kernel, ax, ay);
+        break;
+    case OPENRBD:
+        openRebuild(src, dst, kernel, iter->value(), ax, ay);
+        break;
+    case CLOSERBD:
+        closeRebuild(src, dst, kernel, iter->value(), ax, ay);
         break;
     default: return;
     }
@@ -196,6 +219,7 @@ void BinaryMorphology::on_btn_clicked()
     switch (id) {
     case 2:
         text->setVisible(false);
+        iter->setVisible(false);
         for(int i = 0; i < 16; ++i){
             if(i<2 || i==4 || i==5){
                 spin[i]->setVisible(true);
