@@ -13,6 +13,7 @@
 #include "cannydialog.h"
 #include "noisedialog.h"
 #include "binarymorphology.h"
+#include "graymorphology.h"
 
 #include <QScrollArea>
 #include <QGridLayout>
@@ -27,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowTitle(tr("CVImgProcessor"));
     setWindowIcon(QIcon(":/res/mipmap/lens_32.png"));
     ui->centralWidget->setMouseTracking(true);
 
@@ -490,6 +492,22 @@ void MainWindow::on_cboard_distance_triggered()
     imgWidget->updateImg(dst);
 }
 
+void MainWindow::on_erosion_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, EROSRBD);
+    dialog.exec();
+}
+
+void MainWindow::on_dilation_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    if(imgWidget->mat->channels()!=1)return;
+    BinaryMorphology dialog(this, DILARBD);
+    dialog.exec();
+}
+
 void MainWindow::on_open_rebuild_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
@@ -511,9 +529,8 @@ void MainWindow::on_gray_ersion_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    if(!grayErosion(src, dst))return;
-    imgWidget->updateImg(dst);
+    GrayMorphology dialog(this, GEROSION);
+    dialog.exec();
 }
 
 void MainWindow::on_gray_dilation_triggered()
@@ -521,9 +538,8 @@ void MainWindow::on_gray_dilation_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    if(!grayDilation(src, dst))return;
-    imgWidget->updateImg(dst);
+    GrayMorphology dialog(this, GDILATION);
+    dialog.exec();
 }
 
 void MainWindow::on_gray_open_triggered()
@@ -531,12 +547,8 @@ void MainWindow::on_gray_open_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* tmp = new Mat(src->rows, src->cols, CV_8UC1);
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    if(!grayErosion(src, tmp))return;
-    if(!grayDilation(tmp, dst))return;
-    delete tmp;
-    imgWidget->updateImg(dst);
+    GrayMorphology dialog(this, GOPEN);
+    dialog.exec();
 }
 
 void MainWindow::on_gray_close_triggered()
@@ -544,22 +556,26 @@ void MainWindow::on_gray_close_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* tmp = new Mat(src->rows, src->cols, CV_8UC1);
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    if(!grayDilation(src, tmp))return;
-    if(!grayErosion(tmp, dst))return;
-    delete tmp;
-    imgWidget->updateImg(dst);
+    GrayMorphology dialog(this, GCLOSE);
+    dialog.exec();
 }
 
-void MainWindow::on_gray_watershed_triggered()
+void MainWindow::on_grayErosion_rebuild_triggered()
 {
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    if(!waterShed(src, dst))return;
-    imgWidget->updateImg(dst);
+    GrayMorphology dialog(this, GEROSRBD);
+    dialog.exec();
+}
+
+void MainWindow::on_grayDilation_rebuild_triggered()
+{
+    if(imgWidget==NULL || imgWidget->mat==NULL)return;
+    Mat* src = imgWidget->mat;
+    if(src->channels()!=1)return;
+    GrayMorphology dialog(this, GDILARBD);
+    dialog.exec();
 }
 
 void MainWindow::on_grayOpen_rebuild_triggered()
@@ -567,13 +583,9 @@ void MainWindow::on_grayOpen_rebuild_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    bool ok = false;
-    int n = QInputDialog::getInt(this,tr("InputDialog"),tr("iteration:"),1,1,50,1,&ok);
-    if(ok){
-        if(!grayOpenRebuild(src, dst, n))return;
-        imgWidget->updateImg(dst);
-    }
+    GrayMorphology dialog(this, GOPENRBD);
+    dialog.exec();
+
 }
 
 void MainWindow::on_grayClose_rebuild_triggered()
@@ -581,13 +593,8 @@ void MainWindow::on_grayClose_rebuild_triggered()
     if(imgWidget==NULL || imgWidget->mat==NULL)return;
     Mat* src = imgWidget->mat;
     if(src->channels()!=1)return;
-    Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
-    bool ok = false;
-    int n = QInputDialog::getInt(this,tr("InputDialog"),tr("iteration:"),1,1,50,1,&ok);
-    if(ok){
-        if(!grayCloseRebuild(src, dst, n))return;
-        imgWidget->updateImg(dst);
-    }
+    GrayMorphology dialog(this, GCLOSERBD);
+    dialog.exec();
 }
 
 void MainWindow::on_Hough_Line_triggered()

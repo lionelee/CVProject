@@ -83,6 +83,8 @@ private slots:
     void on_Euler_distance_triggered();
     void on_cblock_distance_triggered();
     void on_cboard_distance_triggered();
+    void on_erosion_rebuild_triggered();
+    void on_dilation_rebuild_triggered();
     void on_open_rebuild_triggered();
     void on_close_rebuild_triggered();
 
@@ -90,7 +92,8 @@ private slots:
     void on_gray_dilation_triggered();
     void on_gray_open_triggered();
     void on_gray_close_triggered();
-    void on_gray_watershed_triggered();
+    void on_grayErosion_rebuild_triggered();
+    void on_grayDilation_rebuild_triggered();
     void on_grayOpen_rebuild_triggered();
     void on_grayClose_rebuild_triggered();
 

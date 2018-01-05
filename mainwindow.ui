@@ -144,6 +144,8 @@
      <property name="title">
       <string>形态学重建</string>
      </property>
+     <addaction name="erosion_rebuild"/>
+     <addaction name="dilation_rebuild"/>
      <addaction name="open_rebuild"/>
      <addaction name="close_rebuild"/>
     </widget>
@@ -171,13 +173,14 @@
      <property name="title">
       <string>形态学重建</string>
      </property>
+     <addaction name="grayErosion_rebuild"/>
+     <addaction name="grayDilation_rebuild"/>
      <addaction name="grayOpen_rebuild"/>
      <addaction name="grayClose_rebuild"/>
     </widget>
     <addaction name="menu_10"/>
     <addaction name="separator"/>
     <addaction name="menu_14"/>
-    <addaction name="gray_watershed"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_2"/>
@@ -504,6 +507,26 @@
   <action name="thickening_serial">
    <property name="text">
     <string>粗化序列</string>
+   </property>
+  </action>
+  <action name="erosion_rebuild">
+   <property name="text">
+    <string>腐蚀重建</string>
+   </property>
+  </action>
+  <action name="dilation_rebuild">
+   <property name="text">
+    <string>膨胀重建</string>
+   </property>
+  </action>
+  <action name="grayErosion_rebuild">
+   <property name="text">
+    <string>腐蚀重建</string>
+   </property>
+  </action>
+  <action name="grayDilation_rebuild">
+   <property name="text">
+    <string>膨胀重建</string>
    </property>
   </action>
  </widget>

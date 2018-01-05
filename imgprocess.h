@@ -106,12 +106,12 @@ bool openRebuild(Mat* src, Mat* dst, Mat* kernel, int n, int anchorx, int anchor
 bool closeRebuild(Mat* src, Mat* dst, Mat* kernel, int n, int anchorx, int anchory);
 
 //gray-level morphologic transformation
-bool grayDilation(Mat* src, Mat* dst);
-bool grayErosion(Mat* src, Mat* dst);
-bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst);
-bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst);
-bool grayOpenRebuild(Mat* src, Mat* dst, int n);
-bool grayCloseRebuild(Mat* src, Mat* dst, int n);
+bool grayDilation(Mat* src, Mat* dst, int krows, int kcols);
+bool grayErosion(Mat* src, Mat* dst, int krows, int kcols);
+bool grayDilationRebuild(Mat* mark, Mat* ground, Mat* dst, int krows, int kcols);
+bool grayErosionRebuild(Mat* mark, Mat* ground, Mat* dst, int krows, int kcols);
+bool grayOpenRebuild(Mat* src, Mat* dst, int krows, int kcols, int n);
+bool grayCloseRebuild(Mat* src, Mat* dst, int krows, int kcols, int n);
 bool waterShed(Mat* src, Mat* dst);
 
 

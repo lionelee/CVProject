@@ -20,8 +20,10 @@
 #define THICKING    6
 #define SKELETON    7
 #define SKERECON    8
-#define OPENRBD     9
-#define CLOSERBD    10
+#define EROSRBD     9
+#define DILARBD     10
+#define OPENRBD     11
+#define CLOSERBD    12
 
 class BinaryMorphology: public QDialog
 {
@@ -34,6 +36,7 @@ public:
 protected:
     bool getCustomKernel(Mat* kernel);
     void operation(Mat* kernel);
+    Mat* openFile();
 
 private slots:
     void accept();

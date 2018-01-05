@@ -33,7 +33,7 @@ CutDialog::CutDialog(QWidget *parent)
 
     label_cw = new QLabel(tr("width:")+QString::fromStdString(num2str(width/4)),this);
     cw = new QSlider(Qt::Horizontal,this);
-    cw->setRange(1, cols);
+    cw->setRange(1, width);
     cw->setValue(width/4);
     connect(cw,SIGNAL(valueChanged(int)),this,SLOT(on_value_changed()));
     QHBoxLayout* layout2 = new QHBoxLayout(this);

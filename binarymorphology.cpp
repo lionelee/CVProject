@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "imgwidget.h"
 #include <QMessageBox>
+#include <QFileDialog>
 
 BinaryMorphology::BinaryMorphology(QWidget *parent, int _type)
     :QDialog(parent),type(_type)
@@ -126,6 +127,7 @@ void BinaryMorphology::operation(Mat* kernel)
     ImgWidget* img = ((MainWindow*)parent())->imgWidget;
     Mat* src = img->mat;
     Mat* dst = new Mat(src->rows, src->cols, CV_8UC1);
+    Mat* marker;
     Mat* tmp;
     int ax = anchorx->value(), ay = anchory->value();
     if(ax >= kernel->cols || ay >= kernel->rows) return;
@@ -163,6 +165,16 @@ void BinaryMorphology::operation(Mat* kernel)
     case SKERECON:
         skeletonReconstruct(src, dst, kernel, ax, ay);
         break;
+    case EROSRBD:
+        marker = openFile();
+        if(marker==NULL)return;
+        erosionRebuild(marker, src, dst, kernel, ax, ay);
+        break;
+    case DILARBD:
+        marker = openFile();
+        if(marker==NULL)return;
+        dilationRebuild(marker, src, dst, kernel, ax, ay);
+        break;
     case OPENRBD:
         openRebuild(src, dst, kernel, iter->value(), ax, ay);
         break;
@@ -174,6 +186,41 @@ void BinaryMorphology::operation(Mat* kernel)
     img->updateImg(dst);
 }
 
+Mat* BinaryMorphology::openFile()
+{
+    QString filter = tr("JPEG(*.jpg;*.jpeg;*.jpe);;PNG(*.png;*.pns);;RAW(*.raw);;BITMAP(*.bmp);;All Format(*.*)");
+    QString promt = QString::fromLocal8Bit("打开图片");
+    QString filePath = QFileDialog::getOpenFileName(this, promt, "", filter);
+
+    if(filePath==NULL) return NULL;
+    bool flag = true;
+    Mat tmp = imread(filePath.toStdString(),-1);
+    Mat* dst;
+    if(!tmp.data){
+        flag = false;
+    }else{
+        int cols = tmp.cols;
+        int rows = tmp.rows;
+        if(tmp.channels()==1){
+            dst = new Mat(rows, cols, CV_8UC1);
+            if(!dst->data){
+                flag = false;
+            }else{
+                cpMatGray(&tmp, dst);
+            }
+        }else{
+            flag = false;
+            return NULL;
+        }
+    }
+
+    if(!flag){
+        QString promt = QString::fromLocal8Bit("错误");
+        QString msg = QString::fromLocal8Bit("无法打开图片 ");
+        QMessageBox::critical(this,promt, msg+filePath,QMessageBox::Ok, QMessageBox::Ok);
+    }
+    return dst;
+}
 
 void BinaryMorphology::accept()
 {

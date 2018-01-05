@@ -43,7 +43,8 @@ HEADERS += \
         scaledialog.h \
         rotatedialog.h \
         cutdialog.h \
-        colorleveldialog.h
+        colorleveldialog.h \
+    graymorphology.h
 
 
 SOURCES += \
@@ -67,7 +68,8 @@ SOURCES += \
         scaledialog.cpp \
         rotatedialog.cpp \
         cutdialog.cpp \
-        colorleveldialog.cpp
+        colorleveldialog.cpp \
+    graymorphology.cpp
 
 FORMS += \
         mainwindow.ui
